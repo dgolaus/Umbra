@@ -1,0 +1,164 @@
+/* =========================================================================
+   TOOL 1 · UPDATE ICON — countdown-overlay generator for Roblox game icons
+   Scoped under #tool-update. Uses the shared core primitives.
+   ========================================================================= */
+
+#tool-update .wrap {
+  max-width: 1340px;
+  margin: 0 auto;
+  padding: 26px clamp(14px, 3vw, 32px) 90px;
+}
+
+/* ---- header ---- */
+#tool-update .ui-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+#tool-update .ui-head h1 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--fg-strong);
+}
+#tool-update .ui-head h1 .accent { color: var(--accent); }
+#tool-update .ui-head .sub { margin: 5px 0 0; font-size: 11.5px; color: var(--muted); }
+#tool-update .ui-head .privacy { font-size: 10.5px; color: var(--dim); }
+#tool-update .ui-head .privacy::before { content: '🔒 '; }
+
+/* ---- two-column layout ---- */
+#tool-update .ui-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 22px;
+  align-items: start;
+}
+#tool-update .ui-controls {
+  position: sticky;
+  top: calc(var(--nav-h) + 18px);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* stacked slider rows — label+value on top, full-width slider below.
+   Keeps row height stable: a longer value ("100%") can't wrap the label. */
+#tool-update .ui-srow { padding: 9px 0; border-bottom: 1px solid var(--line); }
+#tool-update .ui-srow-top {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 12.5px; color: var(--fg); margin-bottom: 9px;
+}
+#tool-update .ui-srow-top .val { color: var(--fg-strong); font-size: 12px; font-variant-numeric: tabular-nums; }
+#tool-update .ui-srow input[type="range"] { width: 100%; display: block; }
+#tool-update .ui-controls .row { padding: 8px 0; }
+
+/* ---- gallery ---- */
+#tool-update .ui-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 16px;
+}
+#tool-update .ui-empty {
+  grid-column: 1 / -1;
+  padding: 70px 20px;
+  text-align: center;
+  color: var(--dim);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.01);
+}
+#tool-update .ui-empty .big { font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+#tool-update .ui-empty .small { font-size: 11px; }
+#tool-update .ui-empty .kbd { margin: 0 2px; }
+
+/* ---- icon card ---- */
+#tool-update .icon-card {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  animation: cardIn 0.26s var(--ease-out) both;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+#tool-update .icon-canvas-wrap {
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background:
+    repeating-conic-gradient(#1a1a1f 0% 25%, #141418 0% 50%) 50% / 18px 18px;
+  line-height: 0;
+  aspect-ratio: 1 / 1;
+  display: flex; align-items: center; justify-content: center;
+}
+#tool-update .icon-canvas-wrap canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+#tool-update .icon-card .text-input { font-size: 12px; padding: 6px 9px; text-align: center; }
+
+#tool-update .icon-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+#tool-update .icon-actions .ibtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--bg-elev);
+  color: var(--muted);
+  font-size: 13px;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, transform 0.1s;
+}
+#tool-update .icon-actions .ibtn:hover { color: var(--fg-strong); border-color: var(--muted); background: var(--bg-hover); }
+#tool-update .icon-actions .ibtn:active { transform: scale(0.93); }
+#tool-update .icon-actions .ibtn.danger:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+
+#tool-update .icon-card .ibtn-wide {
+  width: 100%;
+  height: 28px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--bg-elev);
+  color: var(--muted);
+  font: inherit;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, transform 0.1s;
+}
+#tool-update .icon-card .ibtn-wide:hover { color: var(--fg-strong); border-color: var(--muted); background: var(--bg-hover); }
+#tool-update .icon-card .ibtn-wide:active { transform: scale(0.98); }
+
+/* ---- preset row ---- */
+#tool-update .ui-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ---- bulk action bar ---- */
+#tool-update .ui-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 4px;
+}
+#tool-update .ui-actions .grow { flex: 1; }
+
+@media (max-width: 860px) {
+  #tool-update .ui-layout { grid-template-columns: 1fr; }
+  #tool-update .ui-controls { position: static; }
+  #tool-update .ui-gallery { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}

@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#060608" />
+  <title>umbra — roblox gfx utility hub by @gfxs0da</title>
+  <meta name="description" content="umbra — a roblox gfx utility hub by @gfxs0da. countdown icon overlays, thumbnail grid mosaics, and a robux calculator. all client-side, no backend." />
+
+  <!-- social / link previews -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://dgolaus.github.io/Umbra/" />
+  <meta property="og:title" content="umbra · by @gfxs0da" />
+  <meta property="og:description" content="countdown icon overlays, thumbnail grid mosaics, and a robux calculator — all client-side." />
+  <meta property="og:image" content="https://dgolaus.github.io/Umbra/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="umbra · by @gfxs0da" />
+  <meta name="twitter:description" content="countdown icon overlays, thumbnail grid mosaics, and a robux calculator — all client-side." />
+  <meta name="twitter:image" content="https://dgolaus.github.io/Umbra/assets/og.png" />
+  <meta name="twitter:site" content="@gfxs0da" />
+
+  <link rel="icon" type="image/png" href="assets/fav-256.png" />
+  <link rel="apple-touch-icon" href="assets/fav-256.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/core.css" />
+  <link rel="stylesheet" href="css/update-icon.css" />
+  <link rel="stylesheet" href="css/mosaic.css" />
+  <link rel="stylesheet" href="css/rocalc.css" />
+</head>
+<body>
+
+  <!-- ambient layer (shared across all three tools) -->
+  <div class="amb-orbs" aria-hidden="true"></div>
+  <div class="amb-grid" aria-hidden="true"></div>
+  <div class="amb-particles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+  <!-- top nav -->
+  <nav class="hubnav" aria-label="tools">
+    <a class="hubnav__brand" href="#update">
+      <img class="hubnav__logo" src="assets/fav-256.png" alt="umbra" />
+      <span class="mark">umbra</span>
+      <span class="tag">by <span class="handle">@gfxs0da</span></span>
+    </a>
+    <div class="hubnav__tabs" role="tablist">
+      <span class="hubnav__indicator" aria-hidden="true"></span>
+      <button class="hubnav__tab" role="tab" data-tool="update" title="press 1"><span class="ico" aria-hidden="true">⧗</span>update icon</button>
+      <button class="hubnav__tab" role="tab" data-tool="mosaic" title="press 2"><span class="ico" aria-hidden="true">▦</span>mosaic</button>
+      <button class="hubnav__tab" role="tab" data-tool="rocalc" title="press 3"><span class="ico" aria-hidden="true">∑</span>rocalc</button>
+    </div>
+    <span class="hubnav__spacer"></span>
+    <span class="hubnav__note"><span class="dot">●</span>all client-side · no backend</span>
+  </nav>
+
+  <div class="shell">
+
+    <!-- ======================================================= -->
+    <!-- TOOL 1 · UPDATE ICON                                    -->
+    <!-- ======================================================= -->
+    <section id="tool-update" class="tool" role="tabpanel" aria-label="update icon">
+      <div class="wrap">
+
+        <div class="ui-head">
+          <div>
+            <h1>update <span class="accent">icon</span></h1>
+            <p class="sub">countdown-overlay generator for roblox game icons · <span id="ui-count">0</span> loaded</p>
+          </div>
+          <span class="privacy">processed locally for privacy</span>
+        </div>
+
+        <div class="ui-layout">
+
+          <!-- controls -->
+          <aside class="ui-controls glass">
+
+            <section class="section">
+              <div class="section-header"><span class="num">01</span><h2>upload</h2><span class="desc">unlimited</span></div>
+              <div class="dropzone" id="ui-dropzone">
+                <div class="main">drag, paste or click</div>
+                <div class="hint">png / jpg · <span class="kbd">ctrl+v</span> to paste · no cap</div>
+                <input type="file" id="ui-file" accept="image/*" multiple>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">02</span><h2>style</h2><span class="desc">live on all icons</span></div>
+
+              <div class="ui-srow">
+                <div class="ui-srow-top"><span>bg darkness</span><span class="val" id="ui-darkness-v">50%</span></div>
+                <input type="range" id="ui-darkness" min="0" max="100" value="50">
+              </div>
+              <div class="ui-srow">
+                <div class="ui-srow-top"><span>hourglass size</span><span class="val" id="ui-hgsize-v">100%</span></div>
+                <input type="range" id="ui-hgsize" min="0" max="100" value="100">
+              </div>
+              <div class="ui-srow">
+                <div class="ui-srow-top"><span>hourglass pos y</span><span class="val" id="ui-hgposy-v">0%</span></div>
+                <input type="range" id="ui-hgposy" min="-100" max="100" value="0">
+              </div>
+              <div class="ui-srow">
+                <div class="ui-srow-top"><span>text size</span><span class="val" id="ui-textsize-v">18%</span></div>
+                <input type="range" id="ui-textsize" min="0" max="50" value="18">
+              </div>
+              <div class="ui-srow">
+                <div class="ui-srow-top"><span>text pos y</span><span class="val" id="ui-textposy-v">+12%</span></div>
+                <input type="range" id="ui-textposy" min="-100" max="100" value="12">
+              </div>
+              <div class="row">
+                <span class="row-label">black outline</span>
+                <span class="row-value">
+                  <label class="toggle" title="stroke text + hourglass in black">
+                    <input type="checkbox" id="ui-outline">
+                    <span class="toggle-switch"></span>
+                  </label>
+                </span>
+              </div>
+              <div class="ui-srow">
+                <div class="ui-srow-top"><span>outline width</span><span class="val" id="ui-outlinew-v">1%</span></div>
+                <input type="range" id="ui-outlinew" min="0" max="6" value="1">
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">03</span><h2>presets</h2><span class="desc">style only</span></div>
+              <div class="chip-row" id="ui-presets">
+                <button class="chip" data-preset-default title="reset to defaults">default</button>
+                <button class="chip chip-add" id="ui-save-preset" title="save current style settings">+ save</button>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">04</span><h2>export</h2></div>
+              <div class="ui-actions">
+                <button class="btn btn-primary grow" id="ui-dl-all" disabled>download all · zip</button>
+                <button class="btn" id="ui-clear" disabled>clear</button>
+              </div>
+            </section>
+
+          </aside>
+
+          <!-- gallery -->
+          <section class="ui-gallery" id="ui-gallery" aria-label="loaded icons">
+            <div class="ui-empty" id="ui-empty">
+              <div class="big">no icons yet</div>
+              <div class="small">drag images in, <span class="kbd">ctrl+v</span> paste, or click upload — load as many as you want</div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+      <div class="toast" id="ui-toast" role="status" aria-live="polite"></div>
+    </section>
+
+
+    <!-- ======================================================= -->
+    <!-- TOOL 2 · MOSAIC  (ported from dgolaus/Mosaic)            -->
+    <!-- ======================================================= -->
+    <section id="tool-mosaic" class="tool" role="tabpanel" aria-label="mosaic">
+      <main class="app">
+
+        <header class="mosaic-head">
+          <div class="head-left">
+            <h1>Mosaic <span class="head-by">by <a class="handle" href="https://github.com/dgolaus" target="_blank" rel="noopener">@gfxs0da</a></span></h1>
+          </div>
+          <div class="head-right">
+            <span class="meta">roblox-style grid generator</span>
+            <span class="shortcuts">
+              <span><span class="kbd">ctrl+v</span> paste</span>
+              <span><span class="kbd">ctrl+z</span> undo</span>
+            </span>
+          </div>
+        </header>
+
+        <div class="main-grid">
+
+          <aside class="controls">
+
+            <section class="section">
+              <div class="section-header"><span class="num">01</span><h2>format</h2></div>
+              <div class="chip-row" id="formatButtons">
+                <button class="chip" data-cols="2" data-rows="2">2 × 2</button>
+                <button class="chip" data-cols="3" data-rows="2">3 × 2</button>
+                <button class="chip" data-cols="4" data-rows="2">4 × 2</button>
+                <button class="chip active" data-cols="3" data-rows="3">3 × 3</button>
+                <button class="chip" data-cols="4" data-rows="3">4 × 3</button>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">02</span><h2>ratio</h2></div>
+              <div class="chip-row" id="ratioButtons">
+                <button class="chip active" data-rw="16" data-rh="9">16 : 9</button>
+                <button class="chip" data-rw="1"  data-rh="1">1 : 1</button>
+                <button class="chip" data-rw="4"  data-rh="5">4 : 5</button>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">03</span><h2>adjust</h2></div>
+              <div class="row">
+                <span class="row-label">gap</span>
+                <span class="row-value">
+                  <input type="range" id="gapSlider" min="0" max="20" value="4">
+                  <span class="val" id="gapValue">4px</span>
+                </span>
+              </div>
+              <div class="row">
+                <span class="row-label">rounded corners</span>
+                <span class="row-value">
+                  <label class="toggle" title="toggle rounded corners">
+                    <input type="checkbox" id="roundedToggle">
+                    <span class="toggle-switch"></span>
+                  </label>
+                </span>
+              </div>
+              <div class="row">
+                <span class="row-label">filters</span>
+                <span class="row-value">
+                  <div class="chip-row" id="filterButtons">
+                    <button class="chip chip-toggle" data-filter="saturate" title="boost color saturation">sat</button>
+                    <button class="chip chip-toggle" data-filter="contrast" title="boost contrast">contrast</button>
+                    <button class="chip chip-toggle" data-filter="vignette" title="darken edges">vignette</button>
+                  </div>
+                </span>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">04</span><h2>presets</h2></div>
+              <div class="chip-row" id="presetRow">
+                <button class="chip" data-preset-default title="3×3 · 16:9 · gap 4px · no filters">default</button>
+                <button class="chip chip-add" id="savePresetBtn" title="save current settings">+ save</button>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">05</span><h2>images</h2></div>
+              <div class="dropzone" id="mosaicDropzone">
+                <div class="main">drag, paste or click</div>
+                <div class="hint">or drop onto a specific preview slot</div>
+                <input type="file" id="mosaicFileInput" accept="image/*" multiple>
+              </div>
+              <div class="counter-bar">
+                <span><strong id="loadedCount">0</strong>/<span id="totalSlots">9</span> images</span>
+                <span class="cache-hint" id="cacheHint" title="images outside the visible grid, recoverable"></span>
+              </div>
+            </section>
+
+          </aside>
+
+          <div class="preview-col">
+            <div class="preview-meta">
+              <span class="title"><span class="num">06</span> preview</span>
+              <span class="info"><b id="gridSizeHint">3×3 · 16:9</b> · drag between slots to reorder</span>
+            </div>
+            <div class="preview-wrap">
+              <div class="grid-preview" id="gridPreview"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <footer class="actions">
+          <div class="actions-left">
+            <button class="btn" id="clearBtn" title="clears all images (grid + cache)">clear</button>
+            <button class="btn" id="autoArrangeBtn" disabled title="reorders best-to-worst by engagement (color, contrast, central focus)">auto-arrange</button>
+            <button class="btn" id="shareBtn" title="copies a link with the current settings (no images)">share</button>
+          </div>
+          <div class="actions-right">
+            <div class="select-wrap">
+              <span class="select-label">resolution</span>
+              <select class="select" id="exportRes" title="final PNG width">
+                <option value="1920">1080p</option>
+                <option value="2560">2k</option>
+                <option value="3840">4k</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" id="downloadBtn" disabled>download png</button>
+          </div>
+        </footer>
+
+      </main>
+      <div class="toast" id="mosaicToast"></div>
+    </section>
+
+
+    <!-- ======================================================= -->
+    <!-- TOOL 3 · ROCALC  (ported from dgolaus/RoCalc)           -->
+    <!-- ======================================================= -->
+    <section id="tool-rocalc" class="tool" role="tabpanel" aria-label="rocalc">
+      <div class="wrap">
+
+        <section class="hero">
+          <h1>robux calculator suite</h1>
+          <p class="meta nav">
+            <a class="nav-item" href="#sec-tax">tax</a><span class="nav-sep">·</span><a class="nav-item" href="#sec-gamepass">gamepass</a><span class="nav-sep">·</span><a class="nav-item" href="#sec-devex">devex</a><span class="nav-sep">·</span><a class="nav-item" href="#sec-bm">black market</a>
+          </p>
+        </section>
+
+        <!-- stats -->
+        <section class="section">
+          <header class="section__head">
+            <span class="section__title">stats</span>
+          </header>
+          <div class="row">
+            <span class="row__label has-info" tabindex="0" data-info="30% applies to game passes, dev products and classic clothing. 3D avatar items use a progressive 30→70% revenue share.">marketplace fee</span>
+            <span class="row__value" aria-live="polite" data-stat="fee">30%</span>
+          </div>
+          <div class="row">
+            <span class="row__label has-info" tabindex="0" data-info="official devex rate since 2025-09-05 ($0.0038 per robux). minimum cashout is 30,000 robux.">devex 100k robux</span>
+            <span class="row__value" aria-live="polite" data-stat="devex">$380</span>
+          </div>
+          <div class="row">
+            <span class="row__label has-info" tabindex="0" data-info="pulled live from open.er-api.com. refreshes every 30min and when you return to the tab.">usd → brl</span>
+            <span class="row__value" aria-live="polite" data-stat="usdbrl">R$ 4,92</span>
+          </div>
+        </section>
+
+        <!-- tax -->
+        <section class="section" id="sec-tax">
+          <header class="section__head">
+            <span class="section__title">tax</span>
+            <span class="section__actions">
+              <button class="text-btn" type="button" data-clear="tax">clear</button>
+            </span>
+          </header>
+          <p class="section__desc">roblox keeps 30% on marketplace sales. bidirectional — fill in either field.</p>
+
+          <div class="row">
+            <label class="row__label" for="tax-gross">robux before fee</label>
+            <div class="input-with-suffix">
+              <input id="tax-gross" type="text" inputmode="numeric" placeholder="0" autocomplete="off" spellcheck="false" />
+              <span class="suffix">robux</span>
+            </div>
+          </div>
+          <div class="row">
+            <label class="row__label" for="tax-net">robux after fee</label>
+            <div class="input-with-suffix">
+              <input id="tax-net" type="text" inputmode="numeric" placeholder="0" autocomplete="off" spellcheck="false" />
+              <span class="suffix">robux</span>
+            </div>
+          </div>
+          <div class="row">
+            <span class="row__label">roblox keeps</span>
+            <span class="row__value" aria-live="polite">
+              <span data-tax-fee>0 robux</span>
+              <span class="row__sep">·</span>
+              <span data-tax-rate>30%</span>
+            </span>
+          </div>
+
+          <div class="presets">
+            <span class="label">quick:</span>
+            <button class="preset" type="button" data-preset="tax" data-value="1000">1k</button>
+            <button class="preset" type="button" data-preset="tax" data-value="10000">10k</button>
+            <button class="preset" type="button" data-preset="tax" data-value="100000">100k</button>
+            <button class="preset" type="button" data-preset="tax" data-value="1000000">1m</button>
+          </div>
+        </section>
+
+        <!-- gamepass -->
+        <section class="section" id="sec-gamepass">
+          <header class="section__head">
+            <span class="section__title">gamepass</span>
+          </header>
+          <p class="section__desc">set the gamepass price based on how much you want to receive. same logic as tax, inverted framing.</p>
+
+          <div class="row">
+            <label class="row__label" for="gp-target">i want to receive</label>
+            <div class="input-with-suffix">
+              <input id="gp-target" type="text" inputmode="numeric" placeholder="0" autocomplete="off" spellcheck="false" />
+              <span class="suffix">robux</span>
+            </div>
+          </div>
+          <div class="row">
+            <span class="row__label">list the gamepass for</span>
+            <span class="row__value" aria-live="polite">
+              <span data-gp-list>0 robux</span>
+            </span>
+          </div>
+          <div class="row">
+            <span class="row__label">roblox will keep</span>
+            <span class="row__value" aria-live="polite">
+              <span data-gp-fee>0 robux</span>
+            </span>
+          </div>
+        </section>
+
+        <!-- devex -->
+        <section class="section" id="sec-devex">
+          <header class="section__head">
+            <span class="section__title">devex</span>
+            <span class="section__actions">
+              <button class="text-btn" type="button" data-clear="devex">clear</button>
+            </span>
+          </header>
+          <p class="section__desc">robux ↔ usd ↔ brl at the official developer exchange rate. tri-directional.</p>
+
+          <div class="row">
+            <label class="row__label" for="dx-robux">robux</label>
+            <div class="input-with-suffix">
+              <input id="dx-robux" type="text" inputmode="numeric" placeholder="0" autocomplete="off" spellcheck="false" />
+              <span class="suffix">robux</span>
+            </div>
+          </div>
+          <div class="row">
+            <label class="row__label" for="dx-usd">usd</label>
+            <div class="input-with-suffix">
+              <span class="prefix">$</span>
+              <input id="dx-usd" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off" spellcheck="false" />
+            </div>
+          </div>
+          <div class="row">
+            <label class="row__label" for="dx-brl">brl</label>
+            <div class="input-with-suffix">
+              <span class="prefix">R$</span>
+              <input id="dx-brl" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" spellcheck="false" />
+            </div>
+          </div>
+
+          <p class="warn-msg" data-devex-warn aria-live="polite" hidden></p>
+
+          <div class="toggle-row">
+            <label class="toggle" for="precision-toggle">
+              <input id="precision-toggle" type="checkbox" />
+              <span class="toggle__switch" aria-hidden="true"></span>
+              <span>precision mode</span>
+            </label>
+            <div class="presets">
+              <span class="label">quick:</span>
+              <button class="preset" type="button" data-preset="devex" data-value="30000">min 30k</button>
+              <button class="preset" type="button" data-preset="devex" data-value="100000">100k</button>
+              <button class="preset" type="button" data-preset="devex" data-value="1000000">1m</button>
+            </div>
+          </div>
+
+          <details>
+            <summary>usd → brl rate</summary>
+            <div class="row">
+              <label class="row__label" for="dx-rate">manual rate</label>
+              <div class="input-with-suffix">
+                <span class="prefix">R$</span>
+                <input id="dx-rate" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" spellcheck="false" />
+                <button class="text-btn" type="button" data-action="reset-rate">reset</button>
+              </div>
+            </div>
+            <p data-rate-source style="color:var(--dim);font-size:11px;margin:8px 0 0">
+              <span>live rate:</span>
+              <span data-rate-display aria-live="polite">—</span>
+            </p>
+          </details>
+        </section>
+
+        <!-- black market -->
+        <section class="section section--blackmarket" id="sec-bm">
+          <header class="section__head">
+            <span class="section__title">black market</span>
+            <span class="section__actions">
+              <button class="text-btn" type="button" data-clear="bm">clear</button>
+            </span>
+          </header>
+
+          <div class="bm-warning" role="note">
+            <span class="icon" aria-hidden="true">⚠</span>
+            <p>selling robux outside the <strong>developer exchange</strong> program violates roblox's terms of service and can result in account termination. this calculator is informational only.</p>
+          </div>
+
+          <div class="bm-sub">
+            <h3 class="bm-sub__title">brl parallel</h3>
+            <div class="row">
+              <label class="row__label" for="bm-brl-price">price per 1k robux</label>
+              <div class="input-with-suffix">
+                <span class="prefix">R$</span>
+                <input id="bm-brl-price" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" spellcheck="false" />
+              </div>
+            </div>
+            <div class="row">
+              <label class="row__label" for="bm-brl-robux">amount</label>
+              <div class="input-with-suffix">
+                <input id="bm-brl-robux" type="text" inputmode="numeric" placeholder="0" autocomplete="off" spellcheck="false" />
+                <span class="suffix">robux</span>
+              </div>
+            </div>
+            <div class="row">
+              <label class="row__label" for="bm-brl-value">value</label>
+              <div class="input-with-suffix">
+                <span class="prefix">R$</span>
+                <input id="bm-brl-value" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" spellcheck="false" />
+              </div>
+            </div>
+            <p class="compare" data-compare-brl aria-live="polite" hidden>
+              <span>at the official devex:</span>
+              <span data-devex-equiv-brl>—</span>
+              <span class="diff" data-diff-brl></span>
+            </p>
+          </div>
+
+          <div class="bm-sub">
+            <h3 class="bm-sub__title">usd parallel</h3>
+            <div class="row">
+              <label class="row__label" for="bm-usd-price">price per 1k robux</label>
+              <div class="input-with-suffix">
+                <span class="prefix">$</span>
+                <input id="bm-usd-price" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off" spellcheck="false" />
+              </div>
+            </div>
+            <div class="row">
+              <label class="row__label" for="bm-usd-robux">amount</label>
+              <div class="input-with-suffix">
+                <input id="bm-usd-robux" type="text" inputmode="numeric" placeholder="0" autocomplete="off" spellcheck="false" />
+                <span class="suffix">robux</span>
+              </div>
+            </div>
+            <div class="row">
+              <label class="row__label" for="bm-usd-value">value</label>
+              <div class="input-with-suffix">
+                <span class="prefix">$</span>
+                <input id="bm-usd-value" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off" spellcheck="false" />
+              </div>
+            </div>
+            <p class="compare" data-compare-usd aria-live="polite" hidden>
+              <span>at the official devex:</span>
+              <span data-devex-equiv-usd>—</span>
+              <span class="diff" data-diff-usd></span>
+            </p>
+          </div>
+        </section>
+
+        <footer class="footer">
+          <p>not affiliated with roblox corporation. robux, devex and related marks belong to roblox.</p>
+          <p>
+            <a href="https://x.com/gfxs0da" target="_blank" rel="noopener noreferrer">x @gfxs0da</a><span class="sep">·</span><button class="text-btn" type="button" data-action="share">share</button><span class="sep">·</span><span data-build-info>rates verified 2026-05-09</span>
+          </p>
+        </footer>
+
+      </div>
+      <div class="toast" data-toast role="status" aria-live="polite" aria-atomic="true"></div>
+    </section>
+
+    <footer class="hub-footer">
+      <span class="hf-brand">umbra</span>
+      <span class="sep">·</span>
+      <span>built by <a href="https://x.com/gfxs0da" target="_blank" rel="noopener noreferrer">@gfxs0da</a></span>
+      <span class="sep">·</span>
+      <span>all client-side · no backend · © 2026</span>
+    </footer>
+
+  </div>
+
+  <div class="amb-grain" aria-hidden="true"></div>
+
+  <script src="js/hub.js" defer></script>
+  <script src="js/hourglass-asset.js" defer></script>
+  <script src="js/update-icon.js" defer></script>
+  <script src="js/mosaic.js" defer></script>
+  <script src="js/rocalc.js" defer></script>
+</body>
+</html>

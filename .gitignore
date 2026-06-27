@@ -1,0 +1,7 @@
+# dev-only — not part of the deployed site
+_src/
+_serve.js
+.claude/
+node_modules/
+.DS_Store
+Thumbs.db

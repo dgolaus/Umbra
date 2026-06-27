@@ -1,0 +1,216 @@
+/* =========================================================================
+   TOOL 2 · MOSAIC — Roblox grid generator (ported from dgolaus/Mosaic)
+   Only Mosaic-unique layout lives here; chips/sliders/toggles/buttons/
+   dropzone/select/toast/section/row all come from core.css (shared system).
+   Scoped under #tool-mosaic. Single-viewport app shell.
+   ========================================================================= */
+
+#tool-mosaic.is-active { height: 100%; }
+
+#tool-mosaic .app {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 16px clamp(14px, 3vw, 24px);
+  gap: 16px;
+}
+
+/* ---------- head ---------- */
+#tool-mosaic .mosaic-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+#tool-mosaic .head-left { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+#tool-mosaic .mosaic-head h1 {
+  font-size: 19px; font-weight: 600; margin: 0;
+  letter-spacing: -0.02em; color: var(--fg-strong);
+  display: inline-flex; align-items: baseline; gap: 8px;
+}
+#tool-mosaic .head-by { font-size: 12px; font-weight: 400; color: var(--muted); }
+#tool-mosaic .head-by .handle { color: var(--accent); font-weight: 500; text-decoration: none; transition: color 0.15s; }
+#tool-mosaic .head-by .handle:hover { color: var(--accent-hover); text-decoration: underline; }
+#tool-mosaic .head-right {
+  display: flex; align-items: center; gap: 18px;
+  color: var(--muted); font-size: 11.5px; flex-wrap: wrap;
+}
+#tool-mosaic .shortcuts { display: flex; gap: 12px; color: var(--dim); }
+
+/* ---------- two-column main ---------- */
+#tool-mosaic .main-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+  min-height: 0;
+}
+#tool-mosaic .controls {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+#tool-mosaic .controls::-webkit-scrollbar { width: 6px; }
+#tool-mosaic .controls::-webkit-scrollbar-track { background: transparent; }
+#tool-mosaic .controls::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+#tool-mosaic .controls::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ---------- preview column ---------- */
+#tool-mosaic .preview-col {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
+  min-height: 0;
+}
+#tool-mosaic .preview-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+#tool-mosaic .preview-meta .title {
+  color: var(--fg-strong); font-weight: 600; font-size: 12.5px;
+  display: flex; align-items: baseline; gap: 8px;
+}
+#tool-mosaic .preview-meta .title .num { color: var(--accent); font-size: 10px; font-weight: 600; }
+#tool-mosaic .preview-meta .info { color: var(--muted); }
+#tool-mosaic .preview-meta .info b { color: var(--fg-strong); font-weight: 600; }
+
+#tool-mosaic .preview-wrap {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0; min-width: 0;
+  overflow: hidden;
+  container-type: size;            /* drive grid sizing off the wrap, not its content */
+}
+
+/* ---------- the grid ----------
+   Sized to fit the wrap at the chosen aspect ratio regardless of content,
+   so it never collapses when the grid is empty (was content-sized before). */
+#tool-mosaic .grid-preview {
+  --img-filter: none;
+  --grid-aspect: 16/9;
+  display: grid;
+  aspect-ratio: var(--grid-aspect);
+  width:  min(100cqw, calc(100cqh * (var(--grid-aspect))));
+  height: min(100cqh, calc(100cqw / (var(--grid-aspect))));
+  max-width: 100%;
+  max-height: 100%;
+  transition: gap 0.18s ease;
+}
+#tool-mosaic .slot {
+  background: var(--bg);
+  border: 1px dashed var(--line-strong);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--dim);
+  font-size: 12px;
+  font-weight: 500;
+  transition: border-color 0.15s, background 0.15s, border-radius 0.18s, transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+  user-select: none;
+  animation: slotIn 0.22s ease;
+  min-width: 0; min-height: 0;
+}
+@keyframes slotIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+#tool-mosaic .slot:hover { border-color: var(--muted); background: var(--bg-hover); }
+#tool-mosaic .slot.drag-over { border-color: var(--accent); background: var(--accent-dim); }
+#tool-mosaic .slot.has-image { border: none; cursor: grab; }
+#tool-mosaic .slot.has-image:hover {
+  transform: scale(1.015);
+  box-shadow: 0 0 0 2px var(--accent), 0 6px 22px rgba(0, 0, 0, 0.6);
+  z-index: 2;
+}
+#tool-mosaic .slot.has-image:active { cursor: grabbing; }
+#tool-mosaic .slot.dragging { opacity: 0.35; transform: scale(0.98); }
+#tool-mosaic .slot img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  pointer-events: none;
+  filter: var(--img-filter);
+  transition: filter 0.2s ease;
+  animation: imgIn 0.28s ease;
+}
+@keyframes imgIn { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: scale(1); } }
+#tool-mosaic .slot.has-image::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.5) 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+#tool-mosaic .grid-preview.vignette-on .slot.has-image::after { opacity: 1; }
+
+#tool-mosaic .slot-remove {
+  position: absolute; top: 6px; right: 6px;
+  width: 22px; height: 22px;
+  background: rgba(0, 0, 0, 0.7);
+  border: none; color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px; line-height: 1;
+  display: none; align-items: center; justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.15s, background 0.15s, transform 0.12s;
+  z-index: 3;
+}
+#tool-mosaic .slot.has-image .slot-remove { display: flex; }
+#tool-mosaic .slot.has-image:hover .slot-remove { opacity: 1; background: var(--accent); }
+#tool-mosaic .slot-remove:hover { transform: scale(1.15); }
+
+/* ---------- actions footer ---------- */
+#tool-mosaic .actions {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+#tool-mosaic .actions-left, #tool-mosaic .actions-right {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 900px) {
+  body[data-tool="mosaic"] { overflow: auto; }
+  body[data-tool="mosaic"] .shell { height: auto; }
+  #tool-mosaic.is-active { height: auto; }
+  #tool-mosaic .app {
+    height: auto;
+    min-height: calc(100dvh - var(--nav-h));
+    grid-template-rows: auto auto auto;
+    padding: 14px 16px 24px;
+  }
+  #tool-mosaic .main-grid { grid-template-columns: 1fr; gap: 16px; }
+  #tool-mosaic .controls { overflow: visible; padding-right: 0; max-height: none; }
+  #tool-mosaic .preview-wrap { aspect-ratio: 16/9; max-height: 60vh; }
+  #tool-mosaic .actions { flex-direction: column; align-items: stretch; }
+  #tool-mosaic .actions-left, #tool-mosaic .actions-right { justify-content: center; }
+}
+@media (max-height: 660px) and (min-width: 901px) {
+  #tool-mosaic .app { padding: 10px 16px; gap: 10px; }
+  #tool-mosaic .mosaic-head { padding-bottom: 8px; }
+  #tool-mosaic .mosaic-head h1 { font-size: 16px; }
+  #tool-mosaic .section { margin-bottom: 14px; }
+}
