@@ -154,7 +154,26 @@
   }
 
   /* ---------- boot ---------- */
-  function boot() { initNav(); initSmoothScroll(); }
+  function boot() {
+    var t0 = performance.now();
+    initNav();
+    initSmoothScroll();
+
+    // Warm every tool's layout/paint once while the opaque #boot overlay covers
+    // the screen, so the first switch to each is served from the content-visibility
+    // cache (no first-time freeze). Then fade the splash into the hub.
+    var bootEl = document.getElementById('boot');
+    function reveal() {
+      document.body.classList.remove('warming');
+      document.body.classList.add('ready');
+      if (bootEl) setTimeout(function () { bootEl.style.display = 'none'; }, 650);
+    }
+    document.body.classList.add('warming');
+    void document.body.offsetHeight;               // force layout of all warmed tools (sync)
+    // setTimeout, not rAF — rAF is throttled in background tabs and would leave
+    // the splash stuck. setTimeout always fires. ~1.2s lets the neon flicker land.
+    setTimeout(reveal, Math.max(0, 1200 - (performance.now() - t0)));
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();

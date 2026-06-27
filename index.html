@@ -22,6 +22,7 @@
   <meta name="twitter:image" content="https://dgolaus.github.io/Umbra/assets/og.png" />
   <meta name="twitter:site" content="@gfxs0da" />
 
+  <link rel="preload" as="image" href="assets/fav-256.png" />
   <link rel="icon" type="image/png" href="assets/fav-256.png" />
   <link rel="apple-touch-icon" href="assets/fav-256.png" />
 
@@ -35,6 +36,13 @@
   <link rel="stylesheet" href="css/rocalc.css" />
 </head>
 <body>
+
+  <!-- boot / loading screen (neon-outline splash → fades into the hub) -->
+  <div id="boot" aria-hidden="true">
+    <div class="boot-inner">
+      <img class="boot-logo" src="assets/fav-256.png" alt="" />
+    </div>
+  </div>
 
   <!-- ambient layer (shared across all three tools) -->
   <div class="amb-orbs" aria-hidden="true"></div>

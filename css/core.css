@@ -193,16 +193,83 @@ img, svg, canvas, video { display: block; max-width: 100%; }
   min-height: 100dvh;
 }
 
-.tool { display: none; }
+/* content-visibility (not display:none): a tool's render state is cached after
+   its first paint, so re-showing it on a tab switch skips the costly first
+   layout/paint. all three are warmed once behind the boot screen on load. */
+.tool {
+  content-visibility: hidden;
+  contain-intrinsic-size: 0;
+}
 .tool.is-active {
-  display: block;
+  content-visibility: visible;
   animation: toolIn 0.3s var(--ease-out) both;
 }
-/* opacity + slide only — no blur. Animating filter: blur() over a panel full of
-   backdrop-filter cards re-rasterizes everything per frame and causes the
-   tab-switch jank. opacity/transform are composited on the GPU = smooth. */
+/* boot warm-up: force every tool to render once (behind the opaque #boot overlay) */
+body.warming .tool { content-visibility: visible; }
+/* opacity + slide only — no blur (animating filter:blur() over backdrop-filter
+   panels re-rasterizes everything per frame). opacity/transform = GPU = smooth. */
 @keyframes toolIn {
   from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------- boot / loading screen — neon-outline splash ----------
+   --neon drives the glow/outline colour. swap it for e.g. #36e2ff (icy cyan)
+   or #ff3da6 (hot pink) for a full GTA-style coloured neon. */
+#boot {
+  --neon: 255, 255, 255;          /* rgb channels for the neon glow */
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse 70% 60% at 50% 45%, #0a0a0c 0%, #000 75%);
+  animation: bootFailsafe 0.4s ease 6s forwards;   /* never trap the user if JS stalls */
+}
+#boot .boot-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+}
+#boot .boot-logo {
+  width: 104px;
+  height: 104px;
+  border-radius: 26px;
+  filter:
+    drop-shadow(0 0 14px rgba(var(--neon), 0.55))
+    drop-shadow(0 0 44px rgba(var(--neon), 0.26));
+  animation: neonOn 1.4s ease-out both, logoFloat 2.8s ease-in-out 1.4s infinite;
+}
+/* neon "sign powering on" flicker, then settles */
+@keyframes neonOn {
+  0%   { opacity: 0; }
+  6%   { opacity: 0.85; }
+  9%   { opacity: 0.2; }
+  13%  { opacity: 1; }
+  16%  { opacity: 0.45; }
+  19%  { opacity: 1; }
+  24%  { opacity: 0.7; }
+  27%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+@keyframes neonBreathe { 0%, 100% { opacity: 0.9; } 50% { opacity: 1; } }
+@keyframes logoFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes bootFailsafe { to { opacity: 0; visibility: hidden; } }
+
+body.ready #boot {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.55s ease;
+}
+body.ready #boot .boot-inner {
+  transform: scale(1.12);
+  transition: transform 0.6s var(--ease-out);
+}
+body.ready .shell { animation: shellIn 0.55s var(--ease-out) both; }
+@keyframes shellIn {
+  from { opacity: 0; transform: scale(0.992); }
   to   { opacity: 1; transform: none; }
 }
 
