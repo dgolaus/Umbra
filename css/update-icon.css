@@ -85,6 +85,12 @@
   flex-direction: column;
   gap: 9px;
   animation: cardIn 0.26s var(--ease-out) both;
+  /* no backdrop-filter here: over a near-black bg it's visually nil but very
+     costly when many cards paint at once on first tab-show. solid-ish bg keeps
+     the glass look cheaply. */
+  background: rgba(17, 17, 21, 0.66);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 @keyframes cardIn {
   from { opacity: 0; transform: scale(0.95); }

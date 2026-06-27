@@ -196,11 +196,14 @@ img, svg, canvas, video { display: block; max-width: 100%; }
 .tool { display: none; }
 .tool.is-active {
   display: block;
-  animation: toolIn 0.42s var(--ease-out) both;
+  animation: toolIn 0.3s var(--ease-out) both;
 }
+/* opacity + slide only — no blur. Animating filter: blur() over a panel full of
+   backdrop-filter cards re-rasterizes everything per frame and causes the
+   tab-switch jank. opacity/transform are composited on the GPU = smooth. */
 @keyframes toolIn {
-  from { opacity: 0; transform: translateY(10px); filter: blur(6px); }
-  to   { opacity: 1; transform: none;             filter: blur(0); }
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
 }
 
 /* Mosaic runs as a single-viewport app: lock body scroll while it's active */
