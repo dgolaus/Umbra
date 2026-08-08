@@ -153,6 +153,9 @@
 /* ---- preset row ---- */
 #tool-update .ui-presets { display: flex; flex-wrap: wrap; gap: 6px; }
 
+/* ---- filename prefix ---- */
+#tool-update #ui-prefix { margin-bottom: 10px; }
+
 /* ---- bulk action bar ---- */
 #tool-update .ui-actions {
   display: flex;

@@ -13,7 +13,6 @@
   var PREVIEW = 340;          // longest preview edge (px)
   var NATIVE_CAP = 4096;      // safety cap on export resolution
   var LS_STYLE = 'ui.style', LS_PRESETS = 'ui.presets';
-  var JSZIP_CDN = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
 
   /* ---------- state ---------- */
   var style = Object.assign({}, DEFAULTS);
@@ -29,7 +28,7 @@
   /* ---------- refs (filled on init) ---------- */
   var $ = function (id) { return document.getElementById(id); };
   var gallery, emptyEl, countEl, dropzone, fileInput, presetRow, savePresetBtn,
-      dlAllBtn, clearBtn, outlineToggle, toastEl;
+      dlAllBtn, clearBtn, outlineToggle, toastEl, prefixEl;
 
   var SLIDERS = [
     { id: 'ui-darkness', key: 'darkness', fmt: function (v) { return v + '%'; } },
@@ -288,9 +287,21 @@
     icons.splice(idx, 1);
     refreshState();
   }
+  // per-session download-name registry so repeats get _2, _3… and windows never
+  // prompts to replace. sessionStorage → resets when the tab closes.
+  function uniqueName(base) {
+    var key = 'ui.dlnames', map;
+    try { map = JSON.parse(sessionStorage.getItem(key) || '{}'); } catch (e) { map = {}; }
+    var n = (map[base] || 0) + 1;
+    map[base] = n;
+    try { sessionStorage.setItem(key, JSON.stringify(map)); } catch (e) {}
+    return n === 1 ? base : base + '_' + n;
+  }
   function fileName(icon, i) {
-    var t = (icon.text || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    return 'update-icon-' + (t || ('icon-' + (i + 1))) + '.png';
+    var cd = (icon.text || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '') || ('ICON-' + (i + 1));
+    var prefix = prefixEl ? prefixEl.value.trim().replace(/[\\/:*?"<>|\x00-\x1f]+/g, '').replace(/\s+/g, '_').replace(/^_+|_+$/g, '') : '';
+    var base = prefix ? (prefix + '_' + cd) : ('update-icon-' + cd);
+    return uniqueName(base) + '.png';
   }
   function canvasBlob(canvas) {
     return new Promise(function (res) { canvas.toBlob(function (b) { res(b); }, 'image/png'); });
@@ -325,50 +336,23 @@
   }
 
   /* ---------- bulk ---------- */
-  var jszipPromise = null;
-  function loadJSZip() {
-    if (window.JSZip) return Promise.resolve(window.JSZip);
-    if (jszipPromise) return jszipPromise;
-    jszipPromise = new Promise(function (resolve, reject) {
-      var s = document.createElement('script');
-      s.src = JSZIP_CDN;
-      s.onload = function () { window.JSZip ? resolve(window.JSZip) : reject(new Error('no JSZip')); };
-      s.onerror = function () { reject(new Error('load failed')); };
-      document.head.appendChild(s);
-    });
-    return jszipPromise;
-  }
   var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
 
+  // download every icon as a separate png (no zip). the browser asks once to
+  // allow multiple downloads, then it stays silent for the session.
   function downloadAll() {
     if (!icons.length) { toast('no icons loaded'); return; }
-    toast('preparing ' + icons.length + ' icons…');
-    loadJSZip().then(function (JSZip) {
-      var zip = new JSZip();
-      var chain = Promise.resolve();
-      icons.forEach(function (icon, i) {
-        chain = chain.then(function () {
-          return canvasBlob(renderNative(icon)).then(function (blob) { zip.file(fileName(icon, i), blob); });
+    toast('downloading ' + icons.length + ' icons…');
+    var chain = Promise.resolve();
+    icons.forEach(function (icon, i) {
+      chain = chain.then(function () {
+        return canvasBlob(renderNative(icon)).then(function (blob) {
+          if (blob) triggerDownload(URL.createObjectURL(blob), fileName(icon, i), true);
+          return wait(300);
         });
       });
-      return chain.then(function () { return zip.generateAsync({ type: 'blob' }); })
-        .then(function (out) {
-          triggerDownload(URL.createObjectURL(out), 'update-icons.zip', true);
-          toast(icons.length + ' icons zipped');
-        });
-    }).catch(function () {
-      // sequential fallback (no CDN / offline)
-      var chain = Promise.resolve();
-      icons.forEach(function (icon, i) {
-        chain = chain.then(function () {
-          return canvasBlob(renderNative(icon)).then(function (blob) {
-            triggerDownload(URL.createObjectURL(blob), fileName(icon, i), true);
-            return wait(280);
-          });
-        });
-      });
-      chain.then(function () { toast('downloaded ' + icons.length + ' (zip unavailable)'); });
     });
+    chain.then(function () { toast(icons.length + ' icons downloaded'); });
   }
 
   function clearAll() {
@@ -561,6 +545,7 @@
     clearBtn      = $('ui-clear');
     outlineToggle = $('ui-outline');
     toastEl       = $('ui-toast');
+    prefixEl      = $('ui-prefix');
     if (!gallery) return;
 
     hgImg.onload = function () { hgReady = true; renderAll(); };
