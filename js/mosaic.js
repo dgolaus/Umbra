@@ -44,6 +44,8 @@
   const clearBtn      = $('clearBtn');
   const shareBtn      = $('shareBtn');
   const savePresetBtn = $('savePresetBtn');
+  const boardRow      = $('boardRow');
+  const saveBoardBtn  = $('saveBoardBtn');
   const exportResSel  = $('exportRes');
   const autoArrangeBtn= $('autoArrangeBtn');
   const toast         = $('mosaicToast');
@@ -83,7 +85,8 @@
         tx.onerror = () => rej(tx.error);
       });
       db.close();
-    } catch (e) {}
+      return true;
+    } catch (e) { return false; }
   }
   async function idbGet(key) {
     try {
@@ -534,9 +537,8 @@
     }
   });
 
-  savePresetBtn.addEventListener('click', async () => {
-    const name = (prompt('preset name:') || '').trim().toLowerCase();
-    if (!name) return;
+  savePresetBtn.addEventListener('click', () => {
+    inlineName(presetRow, savePresetBtn, 'preset name + enter', async (name) => {
     userPresets.push({
       name,
       settings: {
@@ -550,7 +552,147 @@
     await savePresets();
     renderPresets();
     showToast('preset saved');
+    });
   });
+
+  // ====== BOARDS (full saves: settings + images) ======
+  // presets store settings only; a board stores the WHOLE mosaic — grid,
+  // settings AND the images — so a finished thumbnail set can be reloaded
+  // and edited later. Persisted in IndexedDB alongside the autosaved state.
+  let boards = [];
+
+  async function loadBoards() {
+    const saved = await idbGet('boards');
+    boards = Array.isArray(saved) ? saved : [];
+    renderBoards();
+  }
+  async function saveBoards() { return idbPut('boards', boards); }
+
+  const boardCount = (b) => (b.images || []).filter(x => x !== null).length;
+
+  function boardSnapshot(name) {
+    return {
+      name,
+      ts: Date.now(),
+      settings: {
+        cols: state.cols, rows: state.rows,
+        ratioW: state.ratioW, ratioH: state.ratioH,
+        gap: state.gap, rounded: state.rounded,
+        filters: { ...state.filters },
+        exportRes: state.exportRes
+      },
+      images: state.images.map(i => i ? { id: i.id, dataUrl: i.dataUrl } : null)
+    };
+  }
+
+  function loadBoardImages(list) {
+    return Promise.all((list || []).map(s => {
+      if (!s) return null;
+      return new Promise((res) => {
+        const img = new Image();
+        img.onload  = () => res({ img, dataUrl: s.dataUrl, id: s.id });
+        img.onerror = () => res(null);
+        img.src = s.dataUrl;
+      });
+    }));
+  }
+
+  async function applyBoard(b) {
+    const items = await loadBoardImages(b.images);
+    items.forEach(it => {
+      if (!it) return;
+      const n = parseInt(String(it.id).replace('img_', ''), 10);
+      if (!isNaN(n) && n > imgIdCounter) imgIdCounter = n;
+    });
+    const s = b.settings || {};
+    commit(() => {
+      state.cols   = s.cols   ?? state.cols;   state.rows   = s.rows   ?? state.rows;
+      state.ratioW = s.ratioW ?? state.ratioW; state.ratioH = s.ratioH ?? state.ratioH;
+      state.gap    = s.gap    ?? state.gap;    state.rounded = !!s.rounded;
+      state.filters = Object.assign({ saturate:false, contrast:false, vignette:false }, s.filters || {});
+      state.exportRes = s.exportRes ?? state.exportRes;
+      state.images = items;
+    });
+    syncUIFromState();
+    showToast(`board "${b.name}" loaded · ctrl+z to undo`);
+  }
+
+  function renderBoards() {
+    Array.from(boardRow.querySelectorAll('[data-board]')).forEach(c => c.remove());
+    boards.forEach((b, i) => {
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.dataset.board = String(i);
+      const s = b.settings || {};
+      chip.title = `${boardCount(b)} images · ${s.cols}×${s.rows} · ${s.ratioW}:${s.ratioH} — click to load`;
+      chip.appendChild(document.createTextNode(b.name));
+      const del = document.createElement('span');
+      del.className = 'chip-delete';
+      del.textContent = '×';
+      del.title = 'delete board';
+      del.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        boards.splice(i, 1);
+        await saveBoards();
+        renderBoards();
+        showToast('board deleted');
+      });
+      chip.appendChild(del);
+      boardRow.insertBefore(chip, saveBoardBtn);
+    });
+  }
+
+  boardRow.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-board]');
+    if (!el || e.target.classList.contains('chip-delete')) return;
+    const b = boards[parseInt(el.dataset.board, 10)];
+    if (b) applyBoard(b);
+  });
+
+  saveBoardBtn.addEventListener('click', () => {
+    if (!state.images.some(x => x !== null)) { showToast('add images first'); return; }
+    inlineName(boardRow, saveBoardBtn, 'board name + enter', async (name) => {
+      const prev = boards.slice();
+      const snap = boardSnapshot(name);
+      const at = boards.findIndex(b => b.name === name);
+      if (at !== -1) boards[at] = snap; else boards.push(snap);
+      const ok = await saveBoards();
+      if (!ok) { boards = prev; renderBoards(); showToast('could not save — storage full'); return; }
+      renderBoards();
+      showToast(`board "${name}" saved · ${boardCount(snap)} images`);
+    });
+  });
+
+  // Inline name entry — replaces window.prompt(), which sandboxed/embedded
+  // webviews silently block (returns null, so the save aborted with no feedback).
+  function inlineName(row, anchorBtn, placeholder, onCommit) {
+    const open = row.querySelector('.name-input');
+    if (open) { open.focus(); return; }
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = 'text-input name-input';
+    inp.placeholder = placeholder;
+    inp.maxLength = 24;
+    inp.spellcheck = false;
+    row.insertBefore(inp, anchorBtn);
+    anchorBtn.style.display = 'none';
+    inp.focus();
+    let done = false;
+    function finish(commitIt) {
+      if (done) return;
+      done = true;
+      const name = (inp.value || '').trim().toLowerCase();
+      if (inp.parentNode) inp.parentNode.removeChild(inp);
+      anchorBtn.style.display = '';
+      if (commitIt && name) onCommit(name);
+    }
+    inp.addEventListener('keydown', (e) => {
+      e.stopPropagation();          // keep ctrl+z / hub 1-2-3 shortcuts out of the field
+      if (e.key === 'Enter')       { e.preventDefault(); finish(true); }
+      else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+    inp.addEventListener('blur', () => finish(true));
+  }
 
   // ====== SHARE ======
   function buildShareUrl() {
@@ -748,6 +890,7 @@
     if (saved && !sharedApplied) { await deserializeAndApply(saved); }
     else if (sharedApplied && saved) { await deserializeAndApply(saved); applyShareFromHash(); }
     await loadPresets();
+    await loadBoards();
     syncUIFromState();
     syncGrid();
   })();

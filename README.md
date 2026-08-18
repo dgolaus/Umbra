@@ -35,6 +35,7 @@ roblox-style thumbnail grid generator.
 - drag / drop / paste, drag-to-reorder, per-slot upload
 - filters (saturation · contrast · vignette) — applied in preview **and** export
 - auto-arrange by engagement, presets, undo/redo (40 steps)
+- **boards** — save a whole finished mosaic (grid, settings **and** images) and reload it later to keep editing
 - png export at 1080p / 2k / 4k · remembers your work (indexeddb)
 
 ### ∑ rocalc

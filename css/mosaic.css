@@ -177,6 +177,9 @@
 #tool-mosaic .slot.has-image:hover .slot-remove { opacity: 1; background: var(--accent); }
 #tool-mosaic .slot-remove:hover { transform: scale(1.15); }
 
+/* inline name entry for presets / boards */
+#tool-mosaic .name-input { width: 150px; font-size: 12px; padding: 6px 9px; }
+
 /* ---------- actions footer ---------- */
 #tool-mosaic .actions {
   padding-top: 14px;
