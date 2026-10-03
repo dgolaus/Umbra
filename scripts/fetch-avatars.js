@@ -9,7 +9,7 @@ const path = require('path');
 
 const USERNAMES = [
   'noshergfx', 'Ieafarr', '4Iudee', 'JuanArtxz', 'sak7q', 'zLyuss', 'ThzArtzz', 'guto65',
-  'killiozz', 'EngineerNamedEric', 'ClassicDivines', 'Monkeyrdh', 'ToshiArtz', '7suecoxz', 'ghkmuitomassa', 'Art_Pkrl0',
+  'killiozz', 'EngineerNamedEric', 'ClassicDivines', 'Monkeyrdh', 'ToshiArtz', '7suecoxz', 'ghkmuitomassa', 'Art_Pkrl0', 'ssquibidyy',
 ];
 
 const ROOT = path.join(__dirname, '..');
