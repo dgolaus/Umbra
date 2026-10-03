@@ -1,8 +1,8 @@
 /* =========================================================================
    TOOL 3 · ROCALC — Robux calculator suite (ported from dgolaus/RoCalc)
    Every selector scoped under #tool-rocalc. Tokens come from core.css.
-   Chrome accent remapped green→red for unification; green/amber kept ONLY
-   where they carry meaning (good-deal diff = green, ToS caution = amber).
+   Chrome accent remapped green→the hub's monochrome accent; green/amber kept
+   ONLY where they carry meaning (good-deal diff = green, ToS caution = amber).
    ========================================================================= */
 
 /* ---------- layout ---------- */
@@ -169,6 +169,68 @@
 #tool-rocalc .bm-sub__title::before { content: '## '; color: var(--dim); }
 #tool-rocalc .bm-sub:first-of-type .bm-sub__title { margin-top: 16px; }
 
+/* currency picker — code pill in the title + clickable prefixes open one menu */
+#tool-rocalc .bm-sub { position: relative; }
+#tool-rocalc .bm-cur {
+  display: inline-flex; align-items: baseline; gap: 5px; margin-right: 4px;
+  padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: 2px;
+  color: var(--fg-strong); font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+#tool-rocalc .bm-cur:hover,
+#tool-rocalc .bm-cur[aria-expanded="true"] { border-color: var(--muted); background: var(--bg-hover); }
+#tool-rocalc .bm-cur__caret { color: var(--dim); font-size: 9px; transition: transform 0.15s ease; }
+#tool-rocalc .bm-cur[aria-expanded="true"] .bm-cur__caret { transform: rotate(180deg); color: var(--muted); }
+#tool-rocalc .bm-cur-prefix {
+  position: relative; text-decoration: underline dotted; text-decoration-color: var(--dim);
+  text-underline-offset: 3px; transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+#tool-rocalc .bm-cur-prefix::after { content: ''; position: absolute; inset: -8px -5px; }
+#tool-rocalc .bm-cur-prefix:hover,
+#tool-rocalc .bm-cur-prefix[aria-expanded="true"] { color: var(--fg-strong); text-decoration-color: var(--muted); }
+#tool-rocalc .bm-cur:focus-visible,
+#tool-rocalc .bm-cur-prefix:focus-visible { outline: 1px solid var(--warn); outline-offset: 2px; border-radius: 2px; }
+
+#tool-rocalc .bm-cur-menu {
+  position: absolute; z-index: 30; width: 272px; max-width: 100%;
+  padding: 6px; background: #0a0a0a;
+  border: 1px solid var(--line-strong); border-radius: 2px;
+  box-shadow: 0 18px 40px -14px rgba(0, 0, 0, 0.85);
+  animation: rc-menu-in 0.16s var(--ease-out) both;
+}
+#tool-rocalc .bm-cur-menu.is-up { animation-name: rc-menu-in-up; }
+@keyframes rc-menu-in    { from { opacity: 0; transform: translateY(-4px); } }
+@keyframes rc-menu-in-up { from { opacity: 0; transform: translateY(4px); } }
+#tool-rocalc .bm-cur-menu__search {
+  width: 100%; padding: 6px 8px; background: transparent; outline: none;
+  border: 0; border-bottom: 1px solid var(--dim); border-radius: 0;
+  color: var(--fg-strong); font-size: 12px; transition: border-bottom-color 0.15s ease;
+}
+#tool-rocalc .bm-cur-menu__search:focus { border-bottom-color: var(--warn); }
+#tool-rocalc .bm-cur-menu__search::placeholder { color: var(--dim); }
+#tool-rocalc .bm-cur-menu__list {
+  position: relative; list-style: none; margin: 6px 0 0; padding: 0;
+  max-height: 232px; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent;
+}
+#tool-rocalc .bm-cur-opt {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 6px 8px; border-radius: 2px; cursor: pointer;
+  font-size: 12px; color: var(--muted);
+}
+#tool-rocalc .bm-cur-opt[hidden] { display: none; }
+#tool-rocalc .bm-cur-opt__code { flex-shrink: 0; width: 3ch; color: var(--fg); }
+#tool-rocalc .bm-cur-opt__sym  { flex-shrink: 0; width: 4ch; color: var(--dim); }
+#tool-rocalc .bm-cur-opt__name {
+  flex: 1; min-width: 0; font-size: 11px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#tool-rocalc .bm-cur-opt.is-active { background: var(--bg-hover); color: var(--fg); }
+#tool-rocalc .bm-cur-opt.is-active .bm-cur-opt__code { color: var(--fg-strong); }
+#tool-rocalc .bm-cur-opt[aria-selected="true"] .bm-cur-opt__code { color: var(--fg-strong); font-weight: 600; }
+#tool-rocalc .bm-cur-opt[aria-selected="true"]::after { content: '✓'; color: var(--warn); font-size: 11px; }
+#tool-rocalc .bm-cur-menu__empty { margin: 0; padding: 10px 8px; font-size: 11px; color: var(--dim); }
+
 /* ---------- devex warn ---------- */
 #tool-rocalc .warn-msg {
   margin: 12px 0 0; padding: 8px 12px; border-left: 2px solid var(--warn);
@@ -238,4 +300,6 @@
 @media (prefers-reduced-motion: reduce) {
   #tool-rocalc .section.just-entered .row input { animation: none !important; }
   #tool-rocalc .nav-item { transition: none !important; }
+  #tool-rocalc .bm-cur-menu { animation: none !important; }
+  #tool-rocalc .bm-cur__caret { transition: none !important; }
 }

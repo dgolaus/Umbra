@@ -177,6 +177,28 @@
 #tool-mosaic .slot.has-image:hover .slot-remove { opacity: 1; background: var(--accent); }
 #tool-mosaic .slot-remove:hover { transform: scale(1.15); }
 
+/* "→ frontpage" — sits left of the ×, revealed on hover (always on touch) */
+#tool-mosaic .slot-send {
+  position: absolute; top: 6px; right: 34px;
+  width: 22px; height: 22px; padding: 0;
+  background: rgba(0, 0, 0, 0.7);
+  border: none; color: var(--fg-strong);
+  border-radius: 50%;
+  cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.15s, background 0.15s, color 0.15s, transform 0.12s;
+  z-index: 3;
+}
+#tool-mosaic .slot-send svg { display: block; pointer-events: none; }
+#tool-mosaic .slot.has-image .slot-send { display: flex; }
+#tool-mosaic .slot.has-image:hover .slot-send,
+#tool-mosaic .slot-send:focus-visible { opacity: 1; pointer-events: auto; }
+#tool-mosaic .slot-send:hover { background: var(--accent); color: var(--on-accent); transform: scale(1.15); }
+@media (hover: none), (any-pointer: coarse) {
+  #tool-mosaic .slot.has-image .slot-send { opacity: 0.85; pointer-events: auto; }
+}
+
 /* inline name entry for presets / boards */
 #tool-mosaic .name-input { width: 150px; font-size: 12px; padding: 6px 9px; }
 

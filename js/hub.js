@@ -1,20 +1,24 @@
 /* =========================================================================
    gfxs0da · utility hub — HUB controller
    Tool switching · active-tool tracking · ambient effects · smooth scroll.
-   Loaded first; exposes window.Hub for the three tool modules.
+   Loaded first; exposes window.Hub for the tool modules (incl. the
+   send / inbox handoff between tools).
    ========================================================================= */
 (function () {
   'use strict';
 
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
-  var TOOLS = ['update', 'mosaic', 'rocalc'];
+  var TOOLS = ['update', 'mosaic', 'rocalc', 'frontpage', 'crop', 'gltf'];
   var DEFAULT_TOOL = 'update';
   var LS_KEY = 'hub.lastTool';
   var TITLES = {
     update: 'update icon — umbra',
     mosaic: 'mosaic — umbra',
-    rocalc: 'rocalc — umbra'
+    rocalc: 'rocalc — umbra',
+    frontpage: 'frontpage — umbra',
+    crop: 'crop — umbra',
+    gltf: 'gltf → png — umbra'
   };
 
   var reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -24,7 +28,21 @@
   var Hub = {
     activeTool: null,
     isActive: function (name) { return Hub.activeTool === name; },
-    show: function (name) { switchTo(name); }
+    show: function (name) { switchTo(name); },
+    // tool → tool handoff: queue the payload, announce it, then open the target.
+    // receivers drain via takeInbox so nothing is processed twice.
+    inbox: {},
+    send: function (target, payload) {
+      if (!target || payload == null) return;
+      (Hub.inbox[target] = Hub.inbox[target] || []).push(payload);
+      document.dispatchEvent(new CustomEvent('hub:receive', { detail: { target: target, payload: payload } }));
+      switchTo(target);
+    },
+    takeInbox: function (target) {
+      var list = Hub.inbox[target] || [];
+      Hub.inbox[target] = [];
+      return list;
+    }
   };
   window.Hub = Hub;
 
@@ -84,12 +102,12 @@
     var brand = document.querySelector('.hubnav__brand');
     if (brand) brand.addEventListener('click', function (e) { e.preventDefault(); switchTo(DEFAULT_TOOL); });
 
-    // keyboard shortcuts: 1 / 2 / 3 switch tools (ignored while typing)
+    // keyboard shortcuts: 1 / 2 / 3 / 4 / 5 switch tools (ignored while typing)
     document.addEventListener('keydown', function (e) {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       var t = e.target, tag = t && t.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
-      var idx = { '1': 0, '2': 1, '3': 2 }[e.key];
+      var idx = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5 }[e.key];
       if (idx != null) switchTo(TOOLS[idx]);
     });
 
@@ -118,7 +136,8 @@
 
   /* ---------- shared smooth scroll (lerp 0.10) ----------
      Active only when the body actually scrolls (Update Icon / RoCalc, and
-     Mosaic on mobile). Never hijacks an internal scroll region (.controls). */
+     Mosaic on mobile). Never hijacks an internal scroll region (.controls,
+     or a [data-native-scroll] element that currently scrolls). */
   function initSmoothScroll() {
     if (reduceMotion || isTouch) return;
     var target = window.scrollY, current = window.scrollY, raf = null;
@@ -136,10 +155,22 @@
     }
     function start() { if (raf == null) raf = requestAnimationFrame(loop); }
 
+    // a [data-native-scroll] ancestor only counts while it can really scroll
+    // vertically (e.g. the update icon controls are a scroller only above 860px)
+    function inNativeScroller(el) {
+      var n = el.closest && el.closest('[data-native-scroll]');
+      while (n) {
+        var oy = getComputedStyle(n).overflowY;
+        if ((oy === 'auto' || oy === 'scroll') && n.scrollHeight > n.clientHeight + 1) return true;
+        n = n.parentElement && n.parentElement.closest('[data-native-scroll]');
+      }
+      return false;
+    }
+
     window.addEventListener('wheel', function (e) {
       if (e.ctrlKey) return;
       if (!bodyScrollable()) return;
-      if (e.target.closest && e.target.closest('.controls')) return; // mosaic internal scroll
+      if (e.target.closest && (e.target.closest('.controls') || inNativeScroller(e.target))) return; // inner scrollers
       e.preventDefault();
       target = clamp(target + e.deltaY);
       start();

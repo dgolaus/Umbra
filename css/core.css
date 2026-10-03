@@ -200,10 +200,12 @@ img, svg, canvas, video { display: block; max-width: 100%; }
   content-visibility: hidden;
   contain-intrinsic-size: 0;
 }
-.tool.is-active {
-  content-visibility: visible;
-  animation: toolIn 0.3s var(--ease-out) both;
-}
+.tool.is-active { content-visibility: visible; }
+/* the entrance plays on the panel's content, never on the section itself: a
+   transformed ancestor (while toolIn runs, or held at `transform: none` by fill
+   `both`) is the containing block for position:fixed, so a hand-off toast shown
+   mid-animation would fade in pinned below the fold, then pop into view */
+.tool.is-active > :not(.toast) { animation: toolIn 0.3s var(--ease-out) backwards; }
 /* boot warm-up: force every tool to render once (behind the opaque #boot overlay) */
 body.warming .tool { content-visibility: visible; }
 /* opacity + slide only — no blur (animating filter:blur() over backdrop-filter
@@ -267,7 +269,7 @@ body.ready #boot .boot-inner {
   transform: scale(1.12);
   transition: transform 0.6s var(--ease-out);
 }
-body.ready .shell { animation: shellIn 0.55s var(--ease-out) both; }
+body.ready .shell { animation: shellIn 0.55s var(--ease-out) backwards; }   /* backwards: see toolIn */
 @keyframes shellIn {
   from { opacity: 0; transform: scale(0.992); }
   to   { opacity: 1; transform: none; }
@@ -366,10 +368,28 @@ body[data-tool="mosaic"] .shell { height: 100dvh; }
   font-size: 10.5px;
   color: var(--dim);
   white-space: nowrap;
+  /* safety net: if the row is ever tight, the note truncates inside the pill */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .hubnav__note .dot { color: var(--pos); margin-right: 5px; }
 
-@media (max-width: 720px) {
+/* nav breakpoints (six tabs, measured in chrome at every width 300–1600 with the page's thin
+   10px scrollbar, a classic 15px one and none). media queries count a classic scrollbar, layout
+   does not, so every tier keeps headroom over what its row needs (+ 15px scrollbar):
+   - one row with the note needs ~1035px of layout width  -> drop the note at <= 1100px
+   - one row without the note needs ~815px                -> wrap into two rows at <= 870px
+   - two rows, 12px tabs: the row is 418px (+ 54 chrome)  -> 11px tabs at <= 520px
+   - 11px tabs: 327px (+ 46 chrome)                        -> 10px tabs at <= 405px
+   - 10px tabs: 280px                                      -> 9.5px tabs at <= 358px
+   - 9.5px tabs (2.5px padding): 250px                     -> icon-only tabs at <= 316px
+     (the label stays in the button for screen readers; font-size 0 only hides it visually) */
+@media (max-width: 1100px) {
+  .hubnav__note { display: none; }
+}
+
+@media (max-width: 870px) {
   :root { --nav-h: 88px; }
   .hubnav { flex-wrap: wrap; height: auto; min-height: var(--nav-h); align-content: center; gap: 6px 14px; padding: 8px 14px; }
   .hubnav__brand { width: 100%; }
@@ -377,6 +397,22 @@ body[data-tool="mosaic"] .shell { height: 100dvh; }
   .hubnav__tabs { margin-left: 0; }
   .hubnav__tab { padding: 6px 10px; font-size: 12px; }
   .hubnav__tab .ico { display: none; }
+}
+/* six tabs on phone widths: tighten in steps so the row never overflows */
+@media (max-width: 520px) {
+  .hubnav { padding: 8px 10px; }
+  .hubnav__tabs { gap: 0; max-width: 100%; }
+  .hubnav__tab { padding: 6px 6px; font-size: 11px; letter-spacing: -0.02em; }
+}
+@media (max-width: 405px) {
+  .hubnav__tab { padding: 6px 4px; font-size: 10px; }
+}
+@media (max-width: 358px) {
+  .hubnav__tab { padding: 6px 2.5px; font-size: 9.5px; }
+}
+@media (max-width: 316px) {
+  .hubnav__tab { padding: 6px 7px; font-size: 0; letter-spacing: 0; }
+  .hubnav__tab .ico { display: inline; margin: 0; font-size: 14px; opacity: 1; }
 }
 
 
@@ -483,6 +519,7 @@ body[data-tool="mosaic"] .hub-footer { display: none; }
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
+  color: var(--on-accent);
   box-shadow: 0 4px 16px var(--accent-glow);
 }
 
@@ -504,7 +541,7 @@ body[data-tool="mosaic"] .hub-footer { display: none; }
 .chip:hover:not(:disabled) { border-color: var(--muted); background: var(--bg-hover); color: var(--fg-strong); }
 .chip:active:not(:disabled) { transform: scale(0.96); }
 .chip.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.chip.active:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.chip.active:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--on-accent); }
 .chip-toggle::before {
   content: '';
   width: 7px; height: 7px;
@@ -514,7 +551,7 @@ body[data-tool="mosaic"] .hub-footer { display: none; }
 }
 .chip-toggle.active::before { background: var(--on-accent); border-color: var(--on-accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
 .chip-add { border-style: dashed; color: var(--muted); }
-.chip-add:hover { color: var(--fg-strong); border-color: var(--accent); }
+.chip-add:hover:not(:disabled) { color: var(--fg-strong); border-color: var(--accent); }
 .chip-delete {
   margin-left: 2px;
   width: 13px; height: 13px;
@@ -676,6 +713,9 @@ select.select option { background: var(--bg-elev); color: var(--fg); }
   z-index: 100;
   border-radius: var(--radius);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  /* with left:50% an auto width only shrink-fits the right half of the viewport
+     (2–3 line pills on phones); max-width still caps it to the 16px gutters */
+  width: max-content;
   max-width: calc(100vw - 32px);
 }
 .toast::before { content: '●'; color: var(--accent); margin-right: 8px; font-size: 8px; vertical-align: middle; }
@@ -687,7 +727,7 @@ select.select option { background: var(--bg-elev); color: var(--fg); }
 @media (prefers-reduced-motion: reduce) {
   .amb-orbs, .amb-particles i { animation: none !important; }
   .amb-particles i { opacity: 0.12; }
-  .tool.is-active { animation: none !important; }
+  .tool.is-active, .tool.is-active > * { animation: none !important; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;

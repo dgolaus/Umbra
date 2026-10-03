@@ -6,20 +6,20 @@
   <meta name="color-scheme" content="dark" />
   <meta name="theme-color" content="#060608" />
   <title>umbra — roblox gfx utility hub by @gfxs0da</title>
-  <meta name="description" content="umbra — a roblox gfx utility hub by @gfxs0da. countdown icon overlays, thumbnail grid mosaics, and a robux calculator. all client-side, no backend." />
+  <meta name="description" content="umbra — a roblox gfx utility hub by @gfxs0da. countdown icon overlays, thumbnail grid mosaics, a robux calculator, a roblox front-page preview, a photoshop-style crop and a gltf → png extractor for photobooth captures. all client-side, no backend." />
 
   <!-- social / link previews -->
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://dgolaus.github.io/Umbra/" />
+  <meta property="og:url" content="https://useumbra.cc/" />
   <meta property="og:title" content="umbra · by @gfxs0da" />
-  <meta property="og:description" content="countdown icon overlays, thumbnail grid mosaics, and a robux calculator — all client-side." />
-  <meta property="og:image" content="https://dgolaus.github.io/Umbra/assets/og.png" />
+  <meta property="og:description" content="countdown icon overlays, thumbnail grid mosaics, a robux calculator, a front-page preview, a photoshop-style crop and gltf → png — all client-side." />
+  <meta property="og:image" content="https://useumbra.cc/assets/og.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="umbra · by @gfxs0da" />
-  <meta name="twitter:description" content="countdown icon overlays, thumbnail grid mosaics, and a robux calculator — all client-side." />
-  <meta name="twitter:image" content="https://dgolaus.github.io/Umbra/assets/og.png" />
+  <meta name="twitter:description" content="countdown icon overlays, thumbnail grid mosaics, a robux calculator, a front-page preview, a photoshop-style crop and gltf → png — all client-side." />
+  <meta name="twitter:image" content="https://useumbra.cc/assets/og.png" />
   <meta name="twitter:site" content="@gfxs0da" />
 
   <link rel="preload" as="image" href="assets/fav-256.png" />
@@ -28,12 +28,15 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/core.css" />
   <link rel="stylesheet" href="css/update-icon.css" />
   <link rel="stylesheet" href="css/mosaic.css" />
   <link rel="stylesheet" href="css/rocalc.css" />
+  <link rel="stylesheet" href="css/frontpage.css" />
+  <link rel="stylesheet" href="css/crop.css" />
+  <link rel="stylesheet" href="css/gltf.css" />
 </head>
 <body>
 
@@ -44,7 +47,7 @@
     </div>
   </div>
 
-  <!-- ambient layer (shared across all three tools) -->
+  <!-- ambient layer (shared across all tools) -->
   <div class="amb-orbs" aria-hidden="true"></div>
   <div class="amb-grid" aria-hidden="true"></div>
   <div class="amb-particles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
@@ -61,6 +64,9 @@
       <button class="hubnav__tab" role="tab" data-tool="update" title="press 1"><span class="ico" aria-hidden="true">⧗</span>update icon</button>
       <button class="hubnav__tab" role="tab" data-tool="mosaic" title="press 2"><span class="ico" aria-hidden="true">▦</span>mosaic</button>
       <button class="hubnav__tab" role="tab" data-tool="rocalc" title="press 3"><span class="ico" aria-hidden="true">∑</span>rocalc</button>
+      <button class="hubnav__tab" role="tab" data-tool="frontpage" title="press 4"><span class="ico" aria-hidden="true">⌂</span>frontpage</button>
+      <button class="hubnav__tab" role="tab" data-tool="crop" title="press 5"><span class="ico" aria-hidden="true">⛶</span>crop</button>
+      <button class="hubnav__tab" role="tab" data-tool="gltf" title="press 6 · active testing"><span class="ico" aria-hidden="true">◈</span>gltf</button>
     </div>
     <span class="hubnav__spacer"></span>
     <span class="hubnav__note"><span class="dot">●</span>all client-side · no backend</span>
@@ -85,13 +91,13 @@
         <div class="ui-layout">
 
           <!-- controls -->
-          <aside class="ui-controls glass">
+          <aside class="ui-controls glass" data-native-scroll>
 
             <section class="section">
               <div class="section-header"><span class="num">01</span><h2>upload</h2><span class="desc">unlimited</span></div>
               <div class="dropzone" id="ui-dropzone">
                 <div class="main">drag, paste or click</div>
-                <div class="hint">png / jpg · <span class="kbd">ctrl+v</span> to paste · no cap</div>
+                <div class="hint">png / jpg · <span class="kbd">ctrl+v</span> to paste · no cap · non-square → auto 1:1</div>
                 <input type="file" id="ui-file" accept="image/*" multiple>
               </div>
             </section>
@@ -101,28 +107,37 @@
 
               <div class="ui-srow">
                 <div class="ui-srow-top"><span>bg darkness</span><span class="val" id="ui-darkness-v">50%</span></div>
-                <input type="range" id="ui-darkness" min="0" max="100" value="50">
+                <input type="range" id="ui-darkness" min="0" max="100" value="50" aria-label="bg darkness">
+              </div>
+              <div class="ui-overlay-row">
+                <div class="ui-srow-top"><span>overlay</span></div>
+                <div class="chip-row" id="ui-overlay">
+                  <button class="chip active" data-overlay="hourglass" title="the rovisuals hourglass">hourglass</button>
+                  <button class="chip" data-overlay="custom" title="upload a png / svg / webp overlay">custom</button>
+                  <button class="chip chip-add" data-overlay-upload title="upload a png / svg / webp overlay">+ upload</button>
+                </div>
+                <input type="file" id="ui-overlay-file" accept="image/png,image/webp,image/svg+xml,.svg" hidden>
               </div>
               <div class="ui-srow">
-                <div class="ui-srow-top"><span>hourglass size</span><span class="val" id="ui-hgsize-v">100%</span></div>
-                <input type="range" id="ui-hgsize" min="0" max="100" value="100">
+                <div class="ui-srow-top"><span>overlay size</span><span class="val" id="ui-hgsize-v">100%</span></div>
+                <input type="range" id="ui-hgsize" min="0" max="100" value="100" aria-label="overlay size">
               </div>
               <div class="ui-srow">
-                <div class="ui-srow-top"><span>hourglass pos y</span><span class="val" id="ui-hgposy-v">0%</span></div>
-                <input type="range" id="ui-hgposy" min="-100" max="100" value="0">
+                <div class="ui-srow-top"><span>overlay pos y</span><span class="val" id="ui-hgposy-v">0%</span></div>
+                <input type="range" id="ui-hgposy" min="-100" max="100" value="0" aria-label="overlay pos y">
               </div>
               <div class="ui-srow">
                 <div class="ui-srow-top"><span>text size</span><span class="val" id="ui-textsize-v">18%</span></div>
-                <input type="range" id="ui-textsize" min="0" max="50" value="18">
+                <input type="range" id="ui-textsize" min="0" max="50" value="18" aria-label="text size">
               </div>
               <div class="ui-srow">
                 <div class="ui-srow-top"><span>text pos y</span><span class="val" id="ui-textposy-v">+12%</span></div>
-                <input type="range" id="ui-textposy" min="-100" max="100" value="12">
+                <input type="range" id="ui-textposy" min="-100" max="100" value="12" aria-label="text pos y">
               </div>
               <div class="row">
                 <span class="row-label">black outline</span>
                 <span class="row-value">
-                  <label class="toggle" title="stroke text + hourglass in black">
+                  <label class="toggle" title="stroke text + overlay in black">
                     <input type="checkbox" id="ui-outline">
                     <span class="toggle-switch"></span>
                   </label>
@@ -130,7 +145,7 @@
               </div>
               <div class="ui-srow">
                 <div class="ui-srow-top"><span>outline width</span><span class="val" id="ui-outlinew-v">1%</span></div>
-                <input type="range" id="ui-outlinew" min="0" max="6" value="1">
+                <input type="range" id="ui-outlinew" min="0" max="6" value="1" aria-label="outline width">
               </div>
             </section>
 
@@ -143,8 +158,27 @@
             </section>
 
             <section class="section">
-              <div class="section-header"><span class="num">04</span><h2>export</h2><span class="desc">optional prefix</span></div>
+              <div class="section-header"><span class="num">04</span><h2>export</h2><span class="desc">prefix · destination · format</span></div>
               <input type="text" class="text-input" id="ui-prefix" placeholder="filename prefix — e.g. client_money" spellcheck="false" autocomplete="off" maxlength="40" />
+              <div class="ui-save-row">
+                <div class="ui-srow-top"><span>save to</span></div>
+                <div class="chip-row" id="ui-saveto" role="radiogroup" aria-label="save to">
+                  <button class="chip active" type="button" data-saveto="downloads" role="radio" aria-checked="true" title="the browser's downloads folder">downloads</button>
+                  <button class="chip" type="button" data-saveto="folder" role="radio" aria-checked="false" title="save straight into a folder you pick">folder</button>
+                </div>
+                <div class="ui-folder" id="ui-folder" hidden>
+                  <svg class="ui-folder-ico" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                  <span class="ui-folder-name is-empty" id="ui-folder-name">no folder yet</span>
+                  <button class="ui-folder-change" id="ui-folder-change" type="button">choose</button>
+                </div>
+              </div>
+              <div class="ui-save-row">
+                <div class="ui-srow-top"><span>format</span></div>
+                <div class="chip-row" id="ui-format" role="radiogroup" aria-label="download all format">
+                  <button class="chip active" type="button" data-format="png" role="radio" aria-checked="true" title="one png per icon">png files</button>
+                  <button class="chip" type="button" data-format="zip" role="radio" aria-checked="false" title="every icon in one .zip">.zip</button>
+                </div>
+              </div>
               <div class="ui-actions">
                 <button class="btn btn-primary grow" id="ui-dl-all" disabled>download all</button>
                 <button class="btn" id="ui-clear" disabled>clear</button>
@@ -215,7 +249,7 @@
               <div class="row">
                 <span class="row-label">gap</span>
                 <span class="row-value">
-                  <input type="range" id="gapSlider" min="0" max="20" value="4">
+                  <input type="range" id="gapSlider" min="0" max="20" value="4" aria-label="gap">
                   <span class="val" id="gapValue">4px</span>
                 </span>
               </div>
@@ -487,63 +521,41 @@
             <p>selling robux outside the <strong>developer exchange</strong> program violates roblox's terms of service and can result in account termination. this calculator is informational only.</p>
           </div>
 
-          <div class="bm-sub">
-            <h3 class="bm-sub__title">brl parallel</h3>
+          <div class="bm-sub" data-bm>
+            <h3 class="bm-sub__title">
+              <button class="bm-cur" type="button" data-bm-cur-open aria-haspopup="listbox" aria-expanded="false" aria-controls="bm-cur-menu" aria-label="change currency (now brl)"><span data-bm-code>brl</span><span class="bm-cur__caret" aria-hidden="true">▾</span></button>
+              parallel
+            </h3>
+            <div class="bm-cur-menu" id="bm-cur-menu" data-bm-menu hidden>
+              <input class="bm-cur-menu__search" id="bm-cur-search" type="text" role="combobox" aria-expanded="true" aria-autocomplete="list" aria-controls="bm-cur-list" aria-label="search currency" placeholder="search currency…" autocomplete="off" spellcheck="false" />
+              <ul class="bm-cur-menu__list" id="bm-cur-list" role="listbox" aria-label="currency" data-native-scroll></ul>
+              <p class="bm-cur-menu__empty" data-bm-empty hidden>no match</p>
+            </div>
             <div class="row">
-              <label class="row__label" for="bm-brl-price">price per 1k robux</label>
+              <label class="row__label" for="bm-price">price per 1k robux</label>
               <div class="input-with-suffix">
-                <span class="prefix">R$</span>
-                <input id="bm-brl-price" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" spellcheck="false" />
+                <button class="prefix bm-cur-prefix" type="button" data-bm-cur-open data-bm-sym aria-haspopup="listbox" aria-expanded="false" aria-controls="bm-cur-menu" aria-label="change currency (now brl)">R$</button>
+                <input id="bm-price" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" spellcheck="false" />
               </div>
             </div>
             <div class="row">
-              <label class="row__label" for="bm-brl-robux">amount</label>
+              <label class="row__label" for="bm-robux">amount</label>
               <div class="input-with-suffix">
-                <input id="bm-brl-robux" type="text" inputmode="numeric" placeholder="0" autocomplete="off" spellcheck="false" />
+                <input id="bm-robux" type="text" inputmode="numeric" placeholder="0" autocomplete="off" spellcheck="false" />
                 <span class="suffix">robux</span>
               </div>
             </div>
             <div class="row">
-              <label class="row__label" for="bm-brl-value">value</label>
+              <label class="row__label" for="bm-value">value</label>
               <div class="input-with-suffix">
-                <span class="prefix">R$</span>
-                <input id="bm-brl-value" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" spellcheck="false" />
+                <button class="prefix bm-cur-prefix" type="button" data-bm-cur-open data-bm-sym aria-haspopup="listbox" aria-expanded="false" aria-controls="bm-cur-menu" aria-label="change currency (now brl)">R$</button>
+                <input id="bm-value" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" spellcheck="false" />
               </div>
             </div>
-            <p class="compare" data-compare-brl aria-live="polite" hidden>
+            <p class="compare" data-compare aria-live="polite" hidden>
               <span>at the official devex:</span>
-              <span data-devex-equiv-brl>—</span>
-              <span class="diff" data-diff-brl></span>
-            </p>
-          </div>
-
-          <div class="bm-sub">
-            <h3 class="bm-sub__title">usd parallel</h3>
-            <div class="row">
-              <label class="row__label" for="bm-usd-price">price per 1k robux</label>
-              <div class="input-with-suffix">
-                <span class="prefix">$</span>
-                <input id="bm-usd-price" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off" spellcheck="false" />
-              </div>
-            </div>
-            <div class="row">
-              <label class="row__label" for="bm-usd-robux">amount</label>
-              <div class="input-with-suffix">
-                <input id="bm-usd-robux" type="text" inputmode="numeric" placeholder="0" autocomplete="off" spellcheck="false" />
-                <span class="suffix">robux</span>
-              </div>
-            </div>
-            <div class="row">
-              <label class="row__label" for="bm-usd-value">value</label>
-              <div class="input-with-suffix">
-                <span class="prefix">$</span>
-                <input id="bm-usd-value" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off" spellcheck="false" />
-              </div>
-            </div>
-            <p class="compare" data-compare-usd aria-live="polite" hidden>
-              <span>at the official devex:</span>
-              <span data-devex-equiv-usd>—</span>
-              <span class="diff" data-diff-usd></span>
+              <span data-devex-equiv>—</span>
+              <span class="diff" data-diff></span>
             </p>
           </div>
         </section>
@@ -559,7 +571,502 @@
       <div class="toast" data-toast role="status" aria-live="polite" aria-atomic="true"></div>
     </section>
 
-    <footer class="hub-footer">
+    <!-- ======================================================= -->
+    <!-- TOOL 4 · FRONTPAGE                                      -->
+    <!-- ======================================================= -->
+    <section id="tool-frontpage" class="tool" role="tabpanel" aria-label="frontpage">
+      <div class="wrap">
+
+        <div class="fp-head">
+          <div>
+            <h1>front<span class="accent">page</span></h1>
+            <p class="sub">see your thumbnail on a roblox-style front page · <span id="fp-feed-info">loading neighbors…</span></p>
+          </div>
+          <span class="privacy">processed locally for privacy</span>
+        </div>
+
+        <div class="fp-layout">
+
+          <!-- controls -->
+          <aside class="fp-controls glass">
+
+            <section class="section">
+              <div class="section-header"><span class="num">01</span><h2>your game</h2><span class="desc">how it shows up</span></div>
+              <div class="fp-fields">
+                <label class="fp-field fp-field--full"><span>name</span>
+                  <input type="text" class="text-input" id="fp-name" placeholder="Your Game" maxlength="60" spellcheck="false" autocomplete="off"></label>
+                <label class="fp-field fp-field--full"><span>creator</span>
+                  <input type="text" class="text-input" id="fp-creator" placeholder="you" maxlength="40" spellcheck="false" autocomplete="off"></label>
+                <label class="fp-field"><span>rating %</span>
+                  <input type="number" class="text-input" id="fp-rating" min="0" max="100" step="1" inputmode="numeric"></label>
+                <label class="fp-field"><span>players</span>
+                  <input type="text" class="text-input" id="fp-players" placeholder="1.2K" maxlength="12" spellcheck="false" autocomplete="off"></label>
+              </div>
+              <div class="dropzone" id="fp-dropzone" role="button" tabindex="0" aria-label="upload thumbnail">
+                <div class="main">thumbnail · drag, paste or click</div>
+                <div class="hint">16:9 png / jpg · <span class="kbd">ctrl+v</span> to paste · replaces the active variant</div>
+                <input type="file" id="fp-file" accept="image/*" multiple>
+              </div>
+
+              <div class="fp-icon" id="fp-icon">
+                <div class="fp-icon-prev" aria-hidden="true"><img id="fp-icon-prev" alt="" draggable="false"></div>
+                <div class="fp-icon-main">
+                  <div class="fp-icon-acts">
+                    <div class="dropzone fp-icon-drop" id="fp-icon-drop" role="button" tabindex="0" aria-label="upload icon" title="your own square icon · drop, or click to pick · non-square is center-cropped">
+                      <div class="main">upload icon</div>
+                      <input type="file" id="fp-icon-file" accept="image/*">
+                    </div>
+                    <button type="button" class="btn fp-icon-crop" id="fp-icon-crop" title="add a thumbnail first" disabled>crop from thumbnail →</button>
+                  </div>
+                  <p class="fp-icon-status"><span class="fp-icon-label">icon</span> <span id="fp-icon-src" aria-live="polite">center crop (auto)</span><span id="fp-icon-mine" hidden> · <button type="button" class="fp-link" id="fp-icon-remove" title="drop your icon and go back to the center crop">remove</button></span></p>
+                </div>
+              </div>
+            </section>
+
+            <section class="section" id="fp-var-sec">
+              <div class="section-header"><span class="num">02</span><h2>variants</h2><span class="desc">a/b up to 4</span></div>
+              <div class="chip-row fp-variants" id="fp-variants">
+                <button type="button" class="chip chip-add" id="fp-var-add" title="add another thumbnail to compare">+ variant</button>
+                <input type="file" id="fp-var-file" accept="image/*" multiple hidden>
+              </div>
+              <div class="row">
+                <span class="row-label">mode</span>
+                <span class="row-value fp-seg">
+                  <button type="button" class="chip" data-set="varMode" data-val="flip" title="one slot — cycle variants with ← →">flip</button>
+                  <button type="button" class="chip" data-set="varMode" data-val="spread" title="every variant gets its own slot">spread</button>
+                </span>
+              </div>
+              <div class="row">
+                <span class="row-label">active</span>
+                <span class="row-value fp-cycle">
+                  <button type="button" class="chip" id="fp-var-prev" aria-label="previous variant">‹</button>
+                  <span class="val" id="fp-var-label">no variants</span>
+                  <button type="button" class="chip" id="fp-var-next" aria-label="next variant">›</button>
+                  <span class="fp-keys"><span class="kbd">←</span><span class="kbd">→</span></span>
+                </span>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">03</span><h2>view</h2><span class="desc">the page around you</span></div>
+              <div class="row">
+                <span class="row-label">page</span>
+                <span class="row-value fp-seg">
+                  <button type="button" class="chip" data-set="page" data-val="home">home</button>
+                  <button type="button" class="chip" data-set="page" data-val="search">search</button>
+                  <button type="button" class="chip" data-set="page" data-val="charts">charts</button>
+                </span>
+              </div>
+              <div class="row">
+                <span class="row-label">device</span>
+                <span class="row-value fp-seg">
+                  <button type="button" class="chip" data-set="device" data-val="desktop">desktop</button>
+                  <button type="button" class="chip" data-set="device" data-val="mobile">mobile</button>
+                </span>
+              </div>
+              <div class="row">
+                <span class="row-label">theme</span>
+                <span class="row-value fp-seg">
+                  <button type="button" class="chip" data-set="theme" data-val="dark">dark</button>
+                  <button type="button" class="chip" data-set="theme" data-val="light">light</button>
+                </span>
+              </div>
+              <div class="row">
+                <span class="row-label">language</span>
+                <span class="row-value fp-seg">
+                  <button type="button" class="chip" data-set="lang" data-val="en">en</button>
+                  <button type="button" class="chip" data-set="lang" data-val="pt">pt-br</button>
+                </span>
+              </div>
+              <div class="row">
+                <span class="row-label">sidebar</span>
+                <span class="row-value">
+                  <label class="toggle" title="show the left navigation (desktop)">
+                    <input type="checkbox" id="fp-sidebar" aria-label="sidebar">
+                    <span class="toggle-switch"></span>
+                  </label>
+                </span>
+              </div>
+              <div class="row">
+                <span class="row-label">density</span>
+                <span class="row-value fp-seg">
+                  <button type="button" class="chip" data-set="density" data-val="cozy">cozy</button>
+                  <button type="button" class="chip" data-set="density" data-val="compact">compact</button>
+                </span>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">04</span><h2>neighbors</h2><span class="desc">real games from the feed</span></div>
+              <div class="fp-nb">
+                <select class="select" id="fp-genre" aria-label="neighbor genre"><option value="all">all genres</option></select>
+                <button type="button" class="btn" id="fp-shuffle" title="new random neighbor order">randomize</button>
+              </div>
+              <p class="fp-hint">click any tile in the preview to put your game there</p>
+              <div class="counter-bar">
+                <span id="fp-slot-v">slot 2</span>
+                <button type="button" class="fp-link" id="fp-slot-reset">reset position</button>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">05</span><h2>tests</h2><span class="desc">preview only · not exported</span></div>
+              <div class="fp-srow">
+                <div class="fp-srow-top"><span>distance</span><span class="val" id="fp-distance-v">1.00×</span></div>
+                <input type="range" id="fp-distance" min="0" max="100" value="0" aria-label="viewing distance">
+              </div>
+              <div class="fp-srow">
+                <div class="fp-srow-top"><span>squint</span><span class="val" id="fp-squint-v">0px</span></div>
+                <input type="range" id="fp-squint" min="0" max="12" value="0" aria-label="squint blur">
+              </div>
+              <div class="row">
+                <span class="row-label">grayscale</span>
+                <span class="row-value">
+                  <label class="toggle" title="judge value contrast without color">
+                    <input type="checkbox" id="fp-gray" aria-label="grayscale">
+                    <span class="toggle-switch"></span>
+                  </label>
+                </span>
+              </div>
+              <div class="fp-meter-head"><span>stand-out meter</span><span class="fp-meter-sub">vs your neighbors</span></div>
+              <div class="fp-meter" id="fp-meter"><div class="fp-meter-msg">add a thumbnail to measure how it stands out</div></div>
+              <p class="fp-meter-sr" id="fp-meter-sr" aria-live="polite"></p>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">06</span><h2>export</h2><span class="desc">what you see</span></div>
+              <div class="row">
+                <span class="row-label">highlight my game</span>
+                <span class="row-value">
+                  <label class="toggle" title="dashed outline + label in the preview (hidden in exports)">
+                    <input type="checkbox" id="fp-highlight" aria-label="highlight my game">
+                    <span class="toggle-switch"></span>
+                  </label>
+                </span>
+              </div>
+              <div class="row">
+                <span class="row-label">scale</span>
+                <span class="row-value fp-seg">
+                  <button type="button" class="chip" data-set="scale" data-val="1">1x</button>
+                  <button type="button" class="chip" data-set="scale" data-val="2">2x</button>
+                </span>
+              </div>
+              <div class="fp-actions">
+                <button type="button" class="btn btn-primary grow" id="fp-export">export png</button>
+                <button type="button" class="btn" id="fp-copy">copy</button>
+              </div>
+              <p class="fp-hint fp-fname" id="fp-fname">frontpage-home-desktop.png</p>
+            </section>
+
+          </aside>
+
+          <!-- preview -->
+          <div class="fp-stage glass" id="fp-stage">
+            <div class="fp-stage-bar">
+              <span id="fp-stage-label">home · desktop · dark · en</span>
+              <span class="fp-stage-var" id="fp-stage-var"></span>
+              <span class="fp-stage-hint">click a tile to place your game</span>
+            </div>
+            <div class="fp-stage-body" id="fp-stage-body">
+              <div class="fp-lens" id="fp-lens">
+                <div class="fp-device" id="fp-device">
+                  <div class="fp-island" aria-hidden="true"></div>
+                  <div class="fp-viewport rbx" id="fp-viewport" data-theme="dark" aria-label="roblox front page preview"></div>
+                </div>
+              </div>
+              <div class="fp-empty" id="fp-empty" hidden>
+                <div class="big">no neighbor feed</div>
+                <div class="small">js/feed.js is missing or empty, so there are no real games to put around yours. run <span class="kbd">node scripts/fetch-feed.js</span> or wait for the daily update.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <p class="fp-legal">not affiliated with roblox corporation. game names and thumbnails belong to their creators.</p>
+      </div>
+      <div class="toast" id="fp-toast" role="status" aria-live="polite"></div>
+    </section>
+
+    <!-- ======================================================= -->
+    <!-- TOOL 5 · CROP                                           -->
+    <!-- ======================================================= -->
+    <section id="tool-crop" class="tool" role="tabpanel" aria-label="crop">
+      <div class="wrap">
+
+        <div class="cr-head">
+          <div>
+            <h1>cr<span class="accent">op</span></h1>
+            <p class="sub">photoshop-style crop for thumbnails &amp; icons · <span id="cr-info">no image yet</span></p>
+          </div>
+          <span class="privacy">processed locally for privacy</span>
+        </div>
+
+        <div class="cr-layout">
+
+          <!-- stage: the image + crop overlay -->
+          <div class="cr-stage glass" id="cr-stage">
+            <div class="cr-view" id="cr-view">
+
+              <div class="dropzone cr-drop" id="cr-drop" role="button" tabindex="0" aria-label="upload a thumbnail to crop">
+                <div class="cr-drop-ico" aria-hidden="true">⛶</div>
+                <div class="main">drop a thumbnail · click · or <span class="kbd">ctrl+v</span></div>
+                <div class="hint">png / jpg / webp · the crop area shows up highlighted — drag it, resize it, export</div>
+              </div>
+
+              <div class="cr-frame" id="cr-frame" hidden>
+                <img id="cr-img" alt="" draggable="false">
+                <div class="cr-shade" id="cr-shade"></div>
+              </div>
+
+              <div class="cr-ui" id="cr-ui" hidden>
+                <div class="cr-box" id="cr-box" tabindex="0" role="group" aria-roledescription="crop area" aria-label="crop area — drag to move, handles to resize, arrow keys to nudge">
+                  <div class="cr-grid" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                  <span class="cr-h cr-h--edge cr-h--n" data-h="n" aria-hidden="true"></span>
+                  <span class="cr-h cr-h--edge cr-h--e" data-h="e" aria-hidden="true"></span>
+                  <span class="cr-h cr-h--edge cr-h--s" data-h="s" aria-hidden="true"></span>
+                  <span class="cr-h cr-h--edge cr-h--w" data-h="w" aria-hidden="true"></span>
+                  <span class="cr-h cr-h--corner cr-h--nw" data-h="nw" aria-hidden="true"></span>
+                  <span class="cr-h cr-h--corner cr-h--ne" data-h="ne" aria-hidden="true"></span>
+                  <span class="cr-h cr-h--corner cr-h--se" data-h="se" aria-hidden="true"></span>
+                  <span class="cr-h cr-h--corner cr-h--sw" data-h="sw" aria-hidden="true"></span>
+                </div>
+                <div class="cr-badge" id="cr-badge" aria-hidden="true"></div>
+              </div>
+
+              <!-- floating toolbar (photoshop-style) -->
+              <div class="cr-bar" id="cr-bar" role="toolbar" aria-label="crop options" hidden>
+                <span class="cr-bar-label" aria-hidden="true">ratio</span>
+                <select class="select" id="cr-ratio" aria-label="crop ratio">
+                  <option value="1:1">1:1 square</option>
+                  <option value="16:9">16:9 thumbnail</option>
+                  <option value="4:3">4:3</option>
+                  <option value="free">free</option>
+                  <option value="original">original</option>
+                </select>
+                <button type="button" class="cr-tbtn cr-tbtn--icon" id="cr-swap" aria-label="swap orientation">⇄</button>
+                <span class="cr-sep" aria-hidden="true"></span>
+                <button type="button" class="cr-tbtn" id="cr-reset" title="largest box of this ratio, centred (esc · double-click)">reset</button>
+                <button type="button" class="cr-tbtn" id="cr-new" title="crop another image" aria-label="new image">new<span class="cr-wide"> image</span></button>
+              </div>
+
+            </div>
+            <input type="file" id="cr-file" accept="image/*" hidden>
+          </div>
+
+          <!-- side panel: result · size · file · export -->
+          <aside class="cr-panel glass">
+
+            <section class="section">
+              <div class="section-header"><span class="num">01</span><h2>result</h2><span class="desc">live preview</span></div>
+              <div class="cr-preview" id="cr-preview">
+                <canvas id="cr-prev-canvas" hidden></canvas>
+                <div class="cr-prev-empty" id="cr-prev-empty">no image yet</div>
+              </div>
+              <div class="cr-out-line">
+                <span id="cr-out-size">—</span>
+                <span class="cr-up" id="cr-up" style="visibility: hidden"></span>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">02</span><h2>output size</h2><span class="desc">png</span></div>
+              <div class="chip-row cr-sizes" id="cr-sizes" role="radiogroup" aria-label="output size"></div>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">03</span><h2>file name</h2><span class="desc">repeats get _2, _3</span></div>
+              <label class="cr-name">
+                <input type="text" class="text-input" id="cr-name" placeholder="thumbnail_icon" spellcheck="false" autocomplete="off" maxlength="80" aria-label="file name" disabled>
+                <span class="cr-ext" aria-hidden="true">.png</span>
+              </label>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">04</span><h2>export</h2><span class="desc">or send it on</span></div>
+              <div class="cr-actions">
+                <button type="button" class="btn btn-primary grow" id="cr-download" disabled>download png</button>
+                <button type="button" class="btn" id="cr-copy" disabled>copy</button>
+              </div>
+              <div class="cr-send">
+                <button type="button" class="btn" id="cr-to-update" title="use it as an icon in update icon" disabled>→ update icon</button>
+                <button type="button" class="btn" id="cr-to-frontpage" title="16:9 goes in as the thumbnail, anything else as the icon" disabled>→ frontpage</button>
+              </div>
+              <p class="cr-keys">
+                drag to move · handles resize · <span class="kbd">alt</span>from centre · <span class="kbd">shift</span>keep ratio (free) ·
+                <span class="kbd">←↑→↓</span>nudge · <span class="kbd">enter</span>download · <span class="kbd">esc</span>reset
+              </p>
+            </section>
+
+          </aside>
+
+        </div>
+      </div>
+      <div class="toast" id="cr-toast" role="status" aria-live="polite"></div>
+    </section>
+
+    <!-- ======================================================= -->
+    <!-- TOOL 6 · GLTF → PNG                                     -->
+    <!-- ======================================================= -->
+    <section id="tool-gltf" class="tool" role="tabpanel" aria-label="gltf to png">
+      <div class="wrap">
+
+        <div class="gl-head">
+          <div>
+            <h1>gltf → <span class="accent">png</span> <span class="gl-wip" title="this tool is new — report anything weird">active testing</span></h1>
+            <p class="sub">photobooth captures exported from studio as .gltf → pngs · <span id="gl-info">no files yet</span></p>
+          </div>
+          <span class="privacy">processed locally for privacy</span>
+        </div>
+
+        <div class="gl-layout">
+
+          <!-- controls -->
+          <aside class="gl-controls glass" aria-label="gltf options">
+
+            <section class="section">
+              <div class="section-header"><span class="num">01</span><h2>add files</h2><span class="desc">from the photobooth plugin</span></div>
+              <div class="dropzone gl-drop" id="gl-drop" role="button" tabindex="0" aria-label="add .gltf or .glb files">
+                <div class="gl-drop-ico" aria-hidden="true">◈</div>
+                <div class="main">drop your .gltf here</div>
+                <div class="hint">or click to pick · you can add several files at once</div>
+              </div>
+              <input type="file" id="gl-file" accept=".gltf,.glb,.bin,model/gltf+json,model/gltf-binary,image/png,image/jpeg,image/webp" multiple hidden>
+              <div class="gl-paste-row">
+                <button type="button" class="chip chip-add" id="gl-paste-toggle" aria-expanded="false" aria-controls="gl-paste">paste json</button>
+                <details class="gl-howto" open>
+                  <summary>how do i get the .gltf?</summary>
+                  <ol>
+                    <li>take your captures with the photobooth plugin</li>
+                    <li>select the capture mesh parts in the explorer</li>
+                    <li>right-click → <b>export selection…</b> → save the .gltf</li>
+                    <li>drop it here — several files at once is fine</li>
+                  </ol>
+                </details>
+              </div>
+              <div class="gl-paste" id="gl-paste" hidden>
+                <textarea class="text-input gl-json" id="gl-json" rows="5" spellcheck="false" autocomplete="off" placeholder='{ "asset": { "version": "2.0", "generator": "Roblox Export" }, … }' aria-label="gltf json"></textarea>
+                <div class="gl-paste-actions">
+                  <button type="button" class="btn btn-primary" id="gl-extract" disabled>extract</button>
+                  <span class="gl-paste-hint"><span class="kbd">ctrl+enter</span></span>
+                </div>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">02</span><h2>image options</h2><span class="desc">optional</span></div>
+              <div class="row gl-trim-row">
+                <span class="row-label">remove empty space</span>
+                <span class="row-value">
+                  <label class="toggle" title="crop each image to its visible pixels">
+                    <input type="checkbox" id="gl-trim" aria-label="remove empty space">
+                    <span class="toggle-switch"></span>
+                  </label>
+                </span>
+              </div>
+              <p class="gl-hint">cuts away the see-through border around your render, so the image is only the character / object.</p>
+              <div class="gl-srow" id="gl-pad-row">
+                <div class="gl-srow-top"><span>leave a margin</span><span class="val" id="gl-pad-v">0 px</span></div>
+                <input type="range" id="gl-pad" min="0" max="64" value="0" aria-label="margin left around the image">
+              </div>
+              <div class="gl-opt">
+                <div class="gl-srow-top"><span>background</span></div>
+                <p class="gl-hint">what fills the see-through parts. keep <b>transparent</b> if you will edit it later.</p>
+                <div class="chip-row" id="gl-bg" role="radiogroup" aria-label="background">
+                  <button class="chip active" type="button" data-bg="transparent" role="radio" aria-checked="true">transparent</button>
+                  <button class="chip" type="button" data-bg="black" role="radio" aria-checked="false">black</button>
+                  <button class="chip" type="button" data-bg="white" role="radio" aria-checked="false">white</button>
+                </div>
+              </div>
+              <div class="gl-opt">
+                <div class="gl-srow-top"><span>image size</span></div>
+                <div class="chip-row" id="gl-scale" role="radiogroup" aria-label="scale">
+                  <button class="chip active" type="button" data-scale="1" role="radio" aria-checked="true" title="keep the size from studio">original</button>
+                  <button class="chip" type="button" data-scale="0.5" role="radio" aria-checked="false" title="half the size">half</button>
+                  <button class="chip" type="button" data-scale="2" role="radio" aria-checked="false" title="double the size">double</button>
+                  <button class="chip" type="button" data-scale="fit1024" role="radio" aria-checked="false" title="the longest side becomes 1024 px">max 1024</button>
+                  <button class="chip" type="button" data-scale="fit512" role="radio" aria-checked="false" title="the longest side becomes 512 px">max 512</button>
+                </div>
+              </div>
+              <p class="gl-optnote" id="gl-optnote">no option on → the original pngs, byte for byte</p>
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">03</span><h2>file names</h2><span class="desc">or rename each card</span></div>
+              <div class="gl-opt">
+                <div class="gl-srow-top"><span>name files by</span></div>
+                <div class="chip-row" id="gl-namestyle" role="radiogroup" aria-label="name style">
+                  <button class="chip active" type="button" data-namestyle="original" role="radio" aria-checked="true" title="the name studio gave it (the capture time)">capture time</button>
+                  <button class="chip" type="button" data-namestyle="numbered" role="radio" aria-checked="false" title="capture_01, capture_02 … in the gallery order">numbers</button>
+                </div>
+              </div>
+              <input type="text" class="text-input" id="gl-prefix" placeholder="text before every name — e.g. lobby" spellcheck="false" autocomplete="off" maxlength="40" aria-label="filename prefix" />
+            </section>
+
+            <section class="section">
+              <div class="section-header"><span class="num">04</span><h2>save</h2><span class="desc">where &amp; how</span></div>
+              <div class="gl-opt">
+                <div class="gl-srow-top"><span>where to save</span></div>
+                <div class="chip-row" id="gl-saveto" role="radiogroup" aria-label="save to">
+                  <button class="chip active" type="button" data-saveto="downloads" role="radio" aria-checked="true" title="the browser's downloads folder">downloads</button>
+                  <button class="chip" type="button" data-saveto="folder" role="radio" aria-checked="false" title="save straight into a folder you pick (chrome · edge · opera)">pick a folder</button>
+                </div>
+                <div class="gl-folder" id="gl-folder" hidden>
+                  <svg class="gl-folder-ico" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                  <span class="gl-folder-name is-empty" id="gl-folder-name">no folder yet</span>
+                  <button class="gl-folder-change" id="gl-folder-change" type="button">choose</button>
+                </div>
+              </div>
+              <div class="gl-opt">
+                <div class="gl-srow-top"><span>how</span></div>
+                <div class="chip-row" id="gl-format" role="radiogroup" aria-label="format">
+                  <button class="chip active" type="button" data-format="png" role="radio" aria-checked="true" title="one png per image">separate pngs</button>
+                  <button class="chip" type="button" data-format="zip" role="radio" aria-checked="false" title="every selected image in one .zip">one .zip</button>
+                </div>
+              </div>
+              <div class="gl-actions">
+                <button type="button" class="btn btn-primary" id="gl-save" disabled>save 0 selected</button>
+              </div>
+            </section>
+
+          </aside>
+
+          <!-- gallery -->
+          <section class="gl-main" aria-label="extracted images">
+            <div class="gl-toolbar glass" id="gl-toolbar" hidden>
+              <div class="gl-tb-sel">
+                <button type="button" class="chip" id="gl-sel-all" title="select every image (the filtered ones when a filter is on)">select all</button>
+                <button type="button" class="chip" id="gl-sel-none">select none</button>
+                <span class="gl-selcount" id="gl-selcount" aria-live="polite">0 of 0 selected</span>
+              </div>
+              <input type="search" class="text-input gl-search" id="gl-search" placeholder="search by name" spellcheck="false" autocomplete="off" aria-label="filter by name">
+              <select class="select gl-sort" id="gl-sort" aria-label="sort">
+                <option value="time-desc">newest first</option>
+                <option value="time-asc">oldest first</option>
+                <option value="file">as in the file</option>
+              </select>
+              <div class="gl-pbg" id="gl-pbg" role="radiogroup" aria-label="preview background">
+                <button type="button" class="gl-sw gl-sw--checker active" data-pbg="checker" role="radio" aria-checked="true" title="checkerboard preview" aria-label="checkerboard preview"></button>
+                <button type="button" class="gl-sw gl-sw--black" data-pbg="black" role="radio" aria-checked="false" title="black preview" aria-label="black preview"></button>
+                <button type="button" class="gl-sw gl-sw--white" data-pbg="white" role="radio" aria-checked="false" title="white preview" aria-label="white preview"></button>
+              </div>
+              <button type="button" class="btn gl-clear" id="gl-clear">clear all</button>
+            </div>
+
+            <div class="gl-groups pbg-checker" id="gl-groups"></div>
+
+            <div class="gl-empty" id="gl-empty">
+              <div class="big">no captures yet</div>
+              <div class="small">drop a .gltf exported from studio — every photobooth capture inside becomes a png</div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+      <div class="toast" id="gl-toast" role="status" aria-live="polite"></div>
+    </section>
+
+  <footer class="hub-footer">
       <span class="hf-brand">umbra</span>
       <span class="sep">·</span>
       <span>built by <a href="https://x.com/gfxs0da" target="_blank" rel="noopener noreferrer">@gfxs0da</a></span>
@@ -573,8 +1080,16 @@
 
   <script src="js/hub.js" defer></script>
   <script src="js/hourglass-asset.js" defer></script>
+  <script src="js/feed.js" defer></script>
+  <script src="js/connections.js" defer></script>
+  <script src="js/umbra-insights.js" defer></script>
+  <script src="js/umbra-paint.js" defer></script>
+  <script src="js/umbra-zip.js" defer></script>
   <script src="js/update-icon.js" defer></script>
   <script src="js/mosaic.js" defer></script>
   <script src="js/rocalc.js" defer></script>
+  <script src="js/frontpage.js" defer></script>
+  <script src="js/crop.js" defer></script>
+  <script src="js/gltf.js" defer></script>
 </body>
 </html>

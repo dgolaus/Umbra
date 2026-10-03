@@ -42,11 +42,18 @@
 #tool-update .ui-controls {
   position: sticky;
   top: calc(var(--nav-h) + 18px);
+  /* taller than a 1080p viewport once overlay + export rows are in — scroll inside instead of
+     hiding 'download all' / 'clear' below the fold while the panel is pinned */
+  max-height: calc(100vh - var(--nav-h) - 36px);
+  max-height: calc(100dvh - var(--nav-h) - 36px);
+  overflow-y: auto;
+  scrollbar-width: thin;
   padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
+#tool-update .ui-controls > * { flex-shrink: 0; }
 
 /* stacked slider rows — label+value on top, full-width slider below.
    Keeps row height stable: a longer value ("100%") can't wrap the label. */
@@ -58,6 +65,18 @@
 #tool-update .ui-srow-top .val { color: var(--fg-strong); font-size: 12px; font-variant-numeric: tabular-nums; }
 #tool-update .ui-srow input[type="range"] { width: 100%; display: block; }
 #tool-update .ui-controls .row { padding: 8px 0; }
+
+/* overlay picker — hourglass | custom (+ upload) */
+#tool-update .ui-overlay-row { padding: 9px 0; border-bottom: 1px solid var(--line); }
+#tool-update .ui-overlay-row .ui-srow-top { margin-bottom: 8px; }
+#tool-update .ui-overlay-row .chip { padding: 5px 10px; font-size: 11.5px; }
+#tool-update .ui-ov-thumb {
+  width: 14px; height: 14px;
+  object-fit: contain;
+  border-radius: 3px;
+  background: repeating-conic-gradient(#2a2a2a 0% 25%, #1c1c1c 0% 50%) 50% / 6px 6px;
+}
+#tool-update .ui-overlay-row .chip.active .ui-ov-thumb { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35); }
 
 /* ---- gallery ---- */
 #tool-update .ui-gallery {
@@ -111,11 +130,40 @@
   height: 100%;
   object-fit: contain;
 }
+/* auto 1:1 crop — drag to reframe */
+#tool-update .icon-canvas-wrap.is-crop { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+/* touch never loses the page's vertical scroll over a preview. wide sources
+   (crop-x) still drag sideways anywhere on the preview; tall sources (crop-y)
+   reframe on touch through the badge, which is the drag handle (touch-action: none) */
+#tool-update .icon-canvas-wrap.is-crop.crop-x,
+#tool-update .icon-canvas-wrap.is-crop.crop-y { touch-action: pan-y pinch-zoom; }
+#tool-update .icon-canvas-wrap.is-crop.is-dragging { cursor: grabbing; }
+/* top-left: keeps clear of the countdown text band at the bottom */
+#tool-update .ui-crop-badge {
+  position: absolute;
+  left: 6px; top: 6px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  touch-action: none;   /* drag handle on touch */
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+#tool-update .icon-card:hover .ui-crop-badge,
+#tool-update .icon-canvas-wrap.is-dragging .ui-crop-badge { opacity: 1; }
+@media (hover: none) { #tool-update .ui-crop-badge { opacity: 0.85; } }
+@media (pointer: coarse) { #tool-update .ui-crop-badge { padding: 6px 8px; } }
+
 #tool-update .icon-card .text-input { font-size: 12px; padding: 6px 9px; text-align: center; }
 
 #tool-update .icon-actions {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 5px;
 }
 #tool-update .icon-actions .ibtn {
@@ -144,17 +192,81 @@
   font: inherit;
   font-size: 10.5px;
   letter-spacing: 0.02em;
+  padding: 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, background 0.15s, transform 0.1s;
 }
 #tool-update .icon-card .ibtn-wide:hover { color: var(--fg-strong); border-color: var(--muted); background: var(--bg-hover); }
 #tool-update .icon-card .ibtn-wide:active { transform: scale(0.98); }
+/* ≤860 the gallery packs minmax(150px) columns, which can leave less than the
+   ~155px 'generate countdown set' needs: let it wrap to two lines rather than
+   ellipsize (cards in a row share a width, so they wrap together) */
+@media (max-width: 860px) {
+  #tool-update .icon-card .ibtn-wide {
+    height: auto;
+    min-height: 28px;
+    padding: 3px 6px;
+    line-height: 1.2;
+    white-space: normal;
+  }
+}
+/* narrow phones: 2-col gallery leaves ~126-134px of text box, so tighten
+   the label enough for 'generate countdown set' to fit on one line */
+@media (max-width: 400px) {
+  #tool-update .icon-card .ibtn-wide { font-size: 9.5px; letter-spacing: 0; padding: 0 4px; }
+}
 
 /* ---- preset row ---- */
 #tool-update .ui-presets { display: flex; flex-wrap: wrap; gap: 6px; }
 
 /* ---- filename prefix ---- */
 #tool-update #ui-prefix { margin-bottom: 10px; }
+
+/* ---- save options: save to (downloads | folder) · format (png | zip) ---- */
+#tool-update .ui-save-row { padding: 2px 0 10px; }
+#tool-update .ui-save-row .ui-srow-top { margin-bottom: 7px; color: var(--muted); font-size: 11.5px; }
+#tool-update .ui-save-row .chip { padding: 5px 10px; font-size: 11.5px; }
+#tool-update .ui-save-row .chip:disabled { opacity: 0.35; cursor: not-allowed; }
+#tool-update .ui-folder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 8px;
+  padding: 6px 6px 6px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  color: var(--muted);
+  font-size: 11.5px;
+}
+#tool-update .ui-folder[hidden] { display: none; }
+#tool-update .ui-folder-ico { flex: none; color: var(--muted); }
+#tool-update .ui-folder-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--fg-strong);
+}
+#tool-update .ui-folder-name.is-empty { color: var(--dim); }
+#tool-update .ui-folder-change {
+  flex: none;
+  padding: 4px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+#tool-update .ui-folder-change:hover { color: var(--fg-strong); border-color: var(--muted); background: var(--bg-hover); }
 
 /* ---- bulk action bar ---- */
 #tool-update .ui-actions {
@@ -165,9 +277,19 @@
   margin-top: 4px;
 }
 #tool-update .ui-actions .grow { flex: 1; }
+/* label carries the destination folder — one line, ellipsis, never wraps */
+#tool-update #ui-dl-all {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#tool-update #ui-clear { flex: none; }
 
 @media (max-width: 860px) {
-  #tool-update .ui-layout { grid-template-columns: 1fr; }
-  #tool-update .ui-controls { position: static; }
+  /* minmax(0, …): a long folder name in the export section must ellipsize, not widen the column */
+  #tool-update .ui-layout { grid-template-columns: minmax(0, 1fr); }
+  #tool-update .ui-controls { position: static; max-height: none; overflow: visible; }
   #tool-update .ui-gallery { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 }
+#tool-update .chip.is-unsupported { opacity: 0.45; border-style: dashed; }

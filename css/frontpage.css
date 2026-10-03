@@ -1,0 +1,853 @@
+/* =========================================================================
+   TOOL 4 · FRONTPAGE — roblox-style front page preview
+   Scoped under #tool-frontpage. Umbra chrome uses the shared core primitives
+   (monochrome, JetBrains Mono). The mock (.rbx) is an ORIGINAL roblox-like
+   page in Inter, kept inside the UmbraPaint subset (solid colors, radius,
+   uniform borders, img object-fit, inline svg, text) so exports match.
+   ========================================================================= */
+
+#tool-frontpage [hidden] { display: none !important; }
+
+#tool-frontpage .wrap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 26px clamp(14px, 3vw, 32px) 40px;
+}
+
+/* ---- header ---- */
+#tool-frontpage .fp-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+#tool-frontpage .fp-head h1 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.02em; color: var(--fg-strong); }
+#tool-frontpage .fp-head h1 .accent { color: var(--accent); }
+#tool-frontpage .fp-head .sub { margin: 5px 0 0; font-size: 11.5px; color: var(--muted); }
+#tool-frontpage .fp-head .privacy { font-size: 10.5px; color: var(--dim); }
+#tool-frontpage .fp-head .privacy::before { content: '🔒 '; }
+
+/* ---- two-column layout ---- */
+#tool-frontpage .fp-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+#tool-frontpage .fp-controls {
+  position: sticky;
+  top: calc(var(--nav-h) + 18px);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+#tool-frontpage .fp-controls .row { padding: 8px 0; }
+#tool-frontpage .fp-controls .row.is-off { opacity: 0.4; }
+
+/* compact segmented chip groups */
+#tool-frontpage .fp-seg { display: inline-flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+#tool-frontpage .fp-seg .chip,
+#tool-frontpage .fp-cycle .chip { padding: 4px 9px; font-size: 11.5px; }
+/* ‹ › with < 2 variants, '+ variant' at the max */
+#tool-frontpage .chip:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* fields */
+#tool-frontpage .fp-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+#tool-frontpage .fp-field { display: flex; flex-direction: column; gap: 4px; font-size: 10.5px; color: var(--muted); min-width: 0; }
+#tool-frontpage .fp-field--full { grid-column: 1 / -1; }
+#tool-frontpage .fp-field .text-input { padding: 6px 10px; }
+#tool-frontpage input[type="number"].text-input { -moz-appearance: textfield; appearance: textfield; }
+#tool-frontpage input[type="number"].text-input::-webkit-outer-spin-button,
+#tool-frontpage input[type="number"].text-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+#tool-frontpage .dropzone { padding: 14px 12px; }
+
+/* stacked slider rows (same recipe as update icon) */
+#tool-frontpage .fp-srow { padding: 9px 0; border-bottom: 1px solid var(--line); }
+#tool-frontpage .fp-srow-top {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 12.5px; color: var(--fg); margin-bottom: 9px;
+}
+#tool-frontpage .fp-srow-top .val { color: var(--fg-strong); font-size: 12px; font-variant-numeric: tabular-nums; }
+#tool-frontpage .fp-srow input[type="range"] { width: 100%; display: block; }
+
+#tool-frontpage .fp-link {
+  color: var(--muted);
+  font-size: 10.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--dim);
+  transition: color 0.15s, text-decoration-color 0.15s;
+}
+#tool-frontpage .fp-link:hover { color: var(--fg-strong); text-decoration-color: var(--accent); }
+#tool-frontpage .fp-hint { margin: 8px 0 0; font-size: 10.5px; color: var(--dim); line-height: 1.5; }
+
+/* ---- icon: center crop of the thumbnail until you upload one (or crop one in the crop tool) ---- */
+#tool-frontpage .fp-icon { display: flex; gap: 12px; align-items: flex-start; margin-top: 12px; }
+#tool-frontpage .fp-icon-prev {
+  flex: 0 0 64px;
+  width: 64px; height: 64px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-elev);
+  border: 1px solid var(--line-strong);
+}
+#tool-frontpage .fp-icon-prev img { display: block; width: 100%; height: 100%; object-fit: cover; }
+#tool-frontpage .fp-icon-prev.is-empty { border-style: dashed; }
+#tool-frontpage .fp-icon-prev.is-empty img { visibility: hidden; }
+#tool-frontpage .fp-icon-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+/* stacked: 'crop from thumbnail →' needs the full column width to stay unclipped */
+#tool-frontpage .fp-icon-acts { display: flex; flex-direction: column; gap: 6px; }
+#tool-frontpage .fp-icon .fp-icon-drop {
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+}
+#tool-frontpage .fp-icon-drop .main { margin: 0; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tool-frontpage .fp-icon-crop { padding: 7px 8px; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tool-frontpage .fp-icon-status { margin: 0; font-size: 10.5px; line-height: 1.5; color: var(--dim); overflow-wrap: anywhere; }
+#tool-frontpage .fp-icon-label { color: var(--muted); }
+#tool-frontpage #fp-icon-src { color: var(--fg); }
+#tool-frontpage .fp-icon-status .fp-link { font-size: inherit; }
+
+/* ---- variants ---- */
+#tool-frontpage .fp-variants { border-radius: var(--radius-sm); transition: background 0.15s, outline-color 0.15s; outline: 1px dashed transparent; outline-offset: 4px; }
+#tool-frontpage .fp-variants.drag-over { outline-color: var(--accent); background: var(--accent-dim); }
+#tool-frontpage .fp-var-chip { padding: 4px 8px 4px 4px; font-weight: 600; }
+#tool-frontpage .fp-var-chip img { width: 30px; height: 17px; object-fit: cover; border-radius: 4px; }
+#tool-frontpage .fp-cycle { gap: 6px; }
+#tool-frontpage .fp-cycle .val { min-width: 74px; text-align: center; }
+#tool-frontpage .fp-keys { display: inline-flex; gap: 2px; margin-left: 2px; }
+#tool-frontpage .fp-keys .kbd { margin: 0; }
+
+/* ---- neighbors ---- */
+#tool-frontpage .fp-nb { display: flex; gap: 8px; }
+#tool-frontpage .fp-nb select.select { flex: 1; min-width: 0; }
+#tool-frontpage .fp-nb .btn { padding: 7px 12px; }
+#tool-frontpage .counter-bar .fp-link { font-size: 10.5px; }
+
+/* ---- stand-out meter ---- */
+#tool-frontpage .fp-meter-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin: 12px 0 8px; font-size: 12.5px; color: var(--fg);
+}
+#tool-frontpage .fp-meter-sub { font-size: 10.5px; color: var(--dim); }
+#tool-frontpage .fp-meter {
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+}
+#tool-frontpage .fp-meter-msg { font-size: 11px; color: var(--dim); line-height: 1.5; }
+/* the meter's screen-reader summary (score + verdict only) — the visible meter is not live */
+#tool-frontpage .fp-meter-sr {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+#tool-frontpage .fp-meter-top { display: flex; align-items: baseline; gap: 4px; }
+#tool-frontpage .fp-score { font-size: 24px; font-weight: 700; color: var(--fg-strong); line-height: 1; font-variant-numeric: tabular-nums; }
+#tool-frontpage .fp-score-max { font-size: 11px; color: var(--dim); }
+#tool-frontpage .fp-verdict { margin-left: auto; font-size: 11px; color: var(--muted); text-align: right; }
+#tool-frontpage .fp-score-bar { height: 3px; margin: 9px 0 10px; border-radius: 2px; background: var(--line-strong); overflow: hidden; }
+#tool-frontpage .fp-score-bar i { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s var(--ease-out); }
+#tool-frontpage .fp-bars { display: flex; flex-direction: column; gap: 7px; }
+#tool-frontpage .fp-bar { display: grid; grid-template-columns: 86px 1fr 40px; align-items: center; gap: 8px; font-size: 10.5px; }
+#tool-frontpage .fp-bar-l { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tool-frontpage .fp-bar-t { position: relative; height: 6px; border-radius: 3px; background: var(--line); }
+#tool-frontpage .fp-bar-me { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--accent-deep); transition: width 0.3s var(--ease-out); }
+#tool-frontpage .fp-bar-avg { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; background: var(--fg-strong); border-radius: 1px; }
+#tool-frontpage .fp-bar-d { text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
+#tool-frontpage .fp-bar-d.up { color: var(--fg-strong); }
+#tool-frontpage .fp-meter-foot { margin-top: 10px; font-size: 9.5px; color: var(--dim); line-height: 1.4; }
+
+/* ---- export ---- */
+#tool-frontpage .fp-actions { display: flex; gap: 8px; margin-top: 8px; }
+#tool-frontpage .fp-actions .grow { flex: 1; }
+#tool-frontpage .fp-fname { font-variant-numeric: tabular-nums; }
+
+#tool-frontpage .fp-legal { margin: 26px 0 0; text-align: center; font-size: 10.5px; color: var(--dim); }
+
+/* ---- stage ---- */
+#tool-frontpage .fp-stage {
+  position: sticky;
+  top: calc(var(--nav-top) + var(--nav-h) + 14px);
+  height: calc(100dvh - 190px);
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  min-width: 0;
+  /* solid-ish bg instead of backdrop blur: the mock repaints a lot */
+  background: rgba(14, 14, 17, 0.72);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+#tool-frontpage .fp-stage-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 6px 9px;
+  font-size: 10.5px;
+  color: var(--dim);
+  white-space: nowrap;
+  /* wraps instead of clipping the zoom chips / variant text off a narrow bar; no
+     overflow:hidden so the zoom chips' focus ring isn't sliced off at the top
+     (label / variant / hint ellipsize themselves) */
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+#tool-frontpage #fp-stage-label,
+#tool-frontpage .fp-stage-var { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+#tool-frontpage .fp-stage-var { color: var(--fg); }
+#tool-frontpage .fp-stage-var:empty { display: none; }
+/* hint: drops to its own line rather than being sliced, right-aligned in leftover room */
+#tool-frontpage .fp-stage-hint { flex: 1 1 auto; min-width: 0; margin-left: auto; text-align: right; overflow: hidden; text-overflow: ellipsis; }
+#tool-frontpage .fp-stage-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #050505;
+}
+#tool-frontpage .fp-lens {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: 50% 50%;
+  transition: transform 0.25s var(--ease-out), filter 0.2s ease;
+}
+#tool-frontpage .fp-device { position: relative; width: 100%; height: 100%; }
+#tool-frontpage .fp-device.is-phone {
+  width: min(414px, calc(100% - 16px));
+  height: min(868px, calc(100% - 24px));
+  padding: 12px;
+  border-radius: 50px;
+  background: #0b0b0c;
+  border: 1px solid #2a2a2a;
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.9), inset 0 0 0 2px #151517;
+}
+#tool-frontpage .fp-island { display: none; }
+#tool-frontpage .fp-device.is-phone .fp-island {
+  display: block;
+  position: absolute;
+  z-index: 6;
+  top: 22px;
+  left: 50%;
+  /* shrinks with a narrow frame so it never covers the status icons */
+  width: clamp(48px, calc(100% - 240px), 98px);
+  height: 28px;
+  transform: translateX(-50%);
+  border-radius: 14px;
+  background: #000;
+  pointer-events: none;
+}
+#tool-frontpage .fp-empty {
+  position: absolute;
+  inset: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--dim);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  padding: 30px;
+}
+#tool-frontpage .fp-empty .big { font-size: 14px; color: var(--muted); }
+#tool-frontpage .fp-empty .small { font-size: 11px; max-width: 420px; line-height: 1.6; }
+
+/* ---- stage bar: whole screen · 100% ---- */
+#tool-frontpage .fp-stage-bar .fp-zoom { flex: none; flex-wrap: nowrap; gap: 3px; }
+#tool-frontpage .fp-stage-bar .fp-zoom .chip { padding: 2px 8px; font-size: 10.5px; line-height: 1.5; }
+
+/* ---- fit view: the fixed virtual screen (or the whole phone) scaled to fit.
+   width / height / margins / transform are set inline by js (FIT in frontpage.js);
+   the transform sits on fp-device, an ancestor of the painted viewport, so exports
+   stay native-size. --fp-inv = 1 / scale keeps preview-only helpers readable. ---- */
+#tool-frontpage .fp-fit .fp-device {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  flex: none;
+  transform-origin: 50% 50%;
+}
+#tool-frontpage .fp-fit .fp-hl {
+  inset: calc(-6px * min(var(--fp-inv, 1), 2));
+  border-width: calc(2px * var(--fp-inv, 1));
+  border-radius: calc(13px * min(var(--fp-inv, 1), 2));
+}
+#tool-frontpage .fp-fit .fp-hl-chip {
+  --fp-ci: var(--fp-inv, 1);
+  top: calc(-11px * var(--fp-ci));
+  left: calc(8px * var(--fp-ci));
+  padding: calc(2px * var(--fp-ci)) calc(7px * var(--fp-ci));
+  border-radius: calc(5px * var(--fp-ci));
+  font-size: calc(10px * var(--fp-ci));
+  /* stays inside its own tile so spread-mode neighbours never paint over the letter */
+  max-width: calc(100% - 16px * var(--fp-ci));
+}
+/* square tiles sit ~167 layout px apart in the 1920 screen: cap the chip's growth so
+   'A · your game' still reads within one tile pitch */
+#tool-frontpage .fp-fit .rbx-tile--sq .fp-hl-chip { --fp-ci: min(var(--fp-inv, 1), 1.6); }
+/* wide tiles (~263 layout px): 'A · your game' still fits whole at 2.4× */
+#tool-frontpage .fp-fit .rbx-tile--wide .fp-hl-chip { --fp-ci: min(var(--fp-inv, 1), 2.4); }
+/* grids: never reach past the row gap into the stats line of the tile above —
+   a grown chip slides down onto its own tile instead */
+#tool-frontpage .fp-fit .rbx-grid { --fp-rg: 20px; }
+#tool-frontpage .fp-fit .rbx--compact .rbx-grid { --fp-rg: 16px; }
+#tool-frontpage .fp-fit .rbx--mobile .rbx-grid { --fp-rg: 14px; }
+#tool-frontpage .fp-fit .rbx-grid .fp-hl-chip {
+  top: max(calc(-11px * var(--fp-ci)), calc(6px * min(var(--fp-inv, 1), 2) + 2px - var(--fp-rg)));
+}
+/* tiny fit scales (js applyFit): the chip can't stay legible — the outline alone marks you */
+#tool-frontpage .fp-fit-small .rbx-tile--sq .fp-hl-chip,
+#tool-frontpage .fp-fit-tiny .fp-hl-chip { display: none; }
+/* horizontal rows clip vertically to their fixed 13/6px breathing room: keep the outline
+   inside it and tuck the chip into the tile's top-left corner instead of scaling outward */
+#tool-frontpage .fp-fit .rbx-row .fp-hl {
+  inset: -6px;
+  border-width: min(4px, calc(2px * var(--fp-inv, 1)));
+  border-radius: 13px;
+}
+#tool-frontpage .fp-fit .rbx-row .fp-hl-chip {
+  top: calc(6px * min(var(--fp-inv, 1), 2));
+  left: calc(6px * min(var(--fp-inv, 1), 2));
+  max-width: calc(100% - 12px * min(var(--fp-inv, 1), 2));
+}
+#tool-frontpage .fp-fit .rbx-tile[data-pos]:not(.is-mine):hover .rbx-thumb::after {
+  font-size: calc(11px * min(var(--fp-inv, 1), 2));
+  white-space: nowrap;
+  text-align: center;
+  box-shadow: inset 0 0 0 calc(2px * var(--fp-inv, 1)) rgba(255, 255, 255, 0.85);
+}
+/* ~150 layout px square tiles (108 in rows): keep 'place here' on one line */
+#tool-frontpage .fp-fit .rbx-tile--sq[data-pos]:not(.is-mine):hover .rbx-thumb::after {
+  font-size: calc(11px * min(var(--fp-inv, 1), 1.4));
+}
+#tool-frontpage .fp-fit .rbx-arrow {
+  width: calc(36px * min(var(--fp-inv, 1), 2));
+  height: calc(36px * min(var(--fp-inv, 1), 2));
+  top: calc(var(--tw) / 2 - 18px * min(var(--fp-inv, 1), 2));
+}
+#tool-frontpage .fp-fit .rbx-arrow svg { width: calc(18px * min(var(--fp-inv, 1), 2)); height: calc(18px * min(var(--fp-inv, 1), 2)); }
+
+/* export: neutralise the test lens + helpers so the png is the clean page */
+#tool-frontpage .fp-exporting .fp-lens { transform: none !important; filter: none !important; transition: none !important; }
+#tool-frontpage .fp-exporting .fp-hl,
+#tool-frontpage .fp-exporting .rbx-arrow { display: none !important; }
+#tool-frontpage .fp-exporting .rbx-thumb::after { content: none !important; }
+/* fit view: paint at true 1:1 (canvas text metrics are size-quantised, so a scaled
+   ancestor would make the png depend on the window size); a veil outside the painted
+   root hides the brief unscaled frame */
+#tool-frontpage .fp-exporting .fp-device { transform: none !important; }
+#tool-frontpage .fp-fit.fp-exporting .fp-stage-body::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  border-radius: inherit;
+  background: #050505;
+}
+
+@media (max-width: 860px) {
+  #tool-frontpage .fp-layout { grid-template-columns: 1fr; }
+  #tool-frontpage .fp-controls { position: static; }
+  #tool-frontpage .fp-stage { position: relative; top: auto; order: -1; height: 76dvh; min-height: 480px; }
+  /* fit + desktop: a 16:9 screen can't use a tall stage — size the stage to it, no letterbox */
+  #tool-frontpage .fp-stage.fp-fit-desk { height: auto; min-height: 0; }
+  #tool-frontpage .fp-stage.fp-fit-desk .fp-stage-body { flex: none; aspect-ratio: 16 / 9; }
+  #tool-frontpage .fp-stage-hint { display: none; }
+}
+
+
+/* =========================================================================
+   ROBLOX-STYLE MOCK (.rbx) — original markup / css
+   ========================================================================= */
+#tool-frontpage .rbx {
+  --r-bg: #111216;
+  --r-top: #111216;
+  --r-line: #25272c;
+  --r-fg: #f7f7f8;
+  --r-fg2: #b8bac1;
+  --r-fg3: #85878f;
+  --r-ph: #26282d;
+  --r-hover: #1f2126;
+  --r-input: #1c1d22;
+  --r-pill: #26282d;
+  --r-pill-on: #f7f7f8;
+  --r-pill-on-fg: #111216;
+  --r-av: #2b2d33;
+  --r-blue: #3b6cff;
+  --r-online: #2fbf62;
+  --r-arrow: #2b2d33;
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--r-bg);
+  color: var(--r-fg);
+  border-radius: 10px;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+#tool-frontpage .rbx[data-theme="light"] {
+  --r-bg: #f7f7f8;
+  --r-top: #ffffff;
+  --r-line: #e1e2e6;
+  --r-fg: #1b1c20;
+  --r-fg2: #55575e;
+  --r-fg3: #7c7e85;
+  --r-ph: #e3e4e8;
+  --r-hover: #ececef;
+  --r-input: #f0f1f3;
+  --r-pill: #e7e8eb;
+  --r-pill-on: #1b1c20;
+  --r-pill-on-fg: #ffffff;
+  --r-av: #d9dadf;
+  --r-arrow: #ffffff;
+}
+#tool-frontpage .rbx ::selection { background: transparent; }
+#tool-frontpage .rbx svg { display: block; flex: none; max-width: none; }
+#tool-frontpage .rbx-divider { flex: none; height: 1px; background: var(--r-line); }
+
+/* ---- top bar ---- */
+#tool-frontpage .rbx-top {
+  flex: none;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 18px 0 14px;
+  background: var(--r-top);
+}
+#tool-frontpage .rbx-top-ic { display: inline-flex; align-items: center; }
+#tool-frontpage .rbx-links { display: flex; align-items: center; gap: 22px; font-size: 15px; font-weight: 600; white-space: nowrap; }
+#tool-frontpage .rbx-search {
+  flex: 1 1 auto;
+  min-width: 120px;
+  max-width: 460px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: var(--r-input);
+  border: 1px solid var(--r-line);
+  color: var(--r-fg3);
+  font-size: 14px;
+}
+#tool-frontpage .rbx-search.has-q { color: var(--r-fg); }
+#tool-frontpage .rbx-search-t { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tool-frontpage .rbx-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+#tool-frontpage .rbx-robux { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; white-space: nowrap; }
+/* signed-in viewer (S0DA + red badge) — top bar profile chip */
+#tool-frontpage .rbx-viewer { flex: none; display: inline-flex; align-items: center; gap: 5px; font-size: 15px; font-weight: 600; white-space: nowrap; }
+#tool-frontpage .rbx-viewer-av { flex: none; width: 30px; height: 30px; margin-right: 3px; border-radius: 50%; background: var(--r-av); overflow: hidden; }
+#tool-frontpage .rbx-viewer-av img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+#tool-frontpage .rbx-top--m .rbx-viewer { gap: 2px; }
+#tool-frontpage .rbx-top--m .rbx-viewer-av { width: 28px; height: 28px; margin-right: 0; }
+#tool-frontpage .rbx--tight .rbx-viewer-av { display: none; }
+#tool-frontpage .rbx--narrow .rbx-links { display: none; }
+/* tight: desktop mock at phone width (sidebar dropped in js) */
+#tool-frontpage .rbx--tight .rbx-top { gap: 12px; padding: 0 12px; }
+#tool-frontpage .rbx--tight .rbx-search { min-width: 0; }
+#tool-frontpage .rbx--tight .rbx-right { gap: 12px; }
+#tool-frontpage .rbx--tight .rbx-right .rbx-top-ic { display: none; }
+#tool-frontpage .rbx--tight .rbx-content { padding: 16px 16px 28px; }
+#tool-frontpage .rbx--tight .rbx-h1 { font-size: 24px; }
+#tool-frontpage .rbx--tight .rbx-h2 { font-size: 18px; }
+
+/* ---- body + sidebar ---- */
+#tool-frontpage .rbx-body { flex: 1; min-height: 0; display: flex; }
+#tool-frontpage .rbx-side {
+  flex: none;
+  width: 204px;
+  padding: 14px 10px;
+  overflow: hidden;
+  background: var(--r-bg);
+}
+#tool-frontpage .rbx-me { display: flex; align-items: center; gap: 10px; padding: 4px 8px 14px; }
+#tool-frontpage .rbx-me-av { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--r-av); overflow: hidden; }
+#tool-frontpage .rbx-me-av img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+#tool-frontpage .rbx-me-txt { min-width: 0; }
+#tool-frontpage .rbx-me-name { display: flex; align-items: center; gap: 4px; font-size: 15px; font-weight: 700; white-space: nowrap; }
+#tool-frontpage .rbx-me-sub { margin-top: 1px; font-size: 12px; font-weight: 500; color: var(--r-fg2); white-space: nowrap; }
+#tool-frontpage .rbx-nav { display: flex; flex-direction: column; gap: 2px; }
+#tool-frontpage .rbx-nav-i {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+#tool-frontpage .rbx-nav-i.is-on { background: var(--r-hover); font-weight: 600; }
+#tool-frontpage .rbx-side-sep { height: 1px; margin: 10px 8px; background: var(--r-line); }
+#tool-frontpage .rbx-premium {
+  margin: 14px 6px 0;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--r-pill);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- main scroller ---- */
+#tool-frontpage .rbx-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--r-ph) transparent;
+}
+/* stacked / touch layouts: the stage fills most of the screen, so a swipe that runs the
+   mock to its end must hand off to the page instead of trapping the user */
+@media (max-width: 860px), (hover: none) {
+  #tool-frontpage .rbx-main { overscroll-behavior-y: auto; }
+}
+#tool-frontpage .rbx-main::-webkit-scrollbar { width: 8px; }
+#tool-frontpage .rbx-main::-webkit-scrollbar-thumb { background: var(--r-ph); border-radius: 4px; }
+#tool-frontpage .rbx-content { padding: 22px 24px 40px; }
+
+/* ---- headings ---- */
+#tool-frontpage .rbx-h1 { font-size: 30px; font-weight: 800; line-height: 1.15; margin: 0 0 4px; }
+#tool-frontpage .rbx-h1--search { font-size: 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tool-frontpage .rbx-sec { margin-top: 26px; }
+#tool-frontpage .rbx-sec--friends { margin-top: 20px; }
+#tool-frontpage .rbx-sec--flat { margin-top: 18px; }
+#tool-frontpage .rbx-sec-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+#tool-frontpage .rbx-h2 { display: flex; align-items: center; gap: 2px; min-width: 0; font-size: 20px; font-weight: 700; white-space: nowrap; }
+#tool-frontpage .rbx-h2-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+#tool-frontpage .rbx-see { flex: none; display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 600; color: var(--r-fg2); white-space: nowrap; }
+
+/* ---- pills ---- */
+#tool-frontpage .rbx-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+#tool-frontpage .rbx-pill {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 14px;
+  border-radius: 17px;
+  background: var(--r-pill);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+#tool-frontpage .rbx-pill.is-on { background: var(--r-pill-on); color: var(--r-pill-on-fg); }
+#tool-frontpage .rbx-pill .rbx-ic { margin-right: -6px; }
+
+/* ---- connections ---- */
+#tool-frontpage .rbx-friends { display: flex; gap: 18px; overflow: hidden; }
+#tool-frontpage .rbx-friend { flex: none; width: 84px; display: flex; flex-direction: column; align-items: center; }
+#tool-frontpage .rbx-av {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: var(--r-av);
+}
+#tool-frontpage .rbx-av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+#tool-frontpage .rbx-av--add { display: flex; align-items: center; justify-content: center; background: var(--r-pill); }
+#tool-frontpage .rbx-dot {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--r-online);
+  border: 4px solid var(--r-bg);
+}
+#tool-frontpage .rbx-count {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: var(--r-blue);
+  border: 3px solid var(--r-bg);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+}
+#tool-frontpage .rbx-fname {
+  margin-top: 8px;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 13px;
+  font-weight: 500;
+}
+#tool-frontpage .rbx-fname > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- tiles ---- */
+#tool-frontpage .rbx-grid { display: grid; gap: 20px 16px; }
+#tool-frontpage .rbx-tile { position: relative; min-width: 0; }
+#tool-frontpage .rbx-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  background: var(--r-ph);
+  overflow: hidden;
+}
+#tool-frontpage .rbx-tile--sq .rbx-thumb { aspect-ratio: 1 / 1; border-radius: 10px; }
+#tool-frontpage .rbx-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+#tool-frontpage .rbx-name {
+  margin-top: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#tool-frontpage .rbx-by {
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--r-fg2);
+}
+#tool-frontpage .rbx-by-t { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tool-frontpage .rbx-meta {
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--r-fg2);
+  white-space: nowrap;
+  overflow: hidden;
+}
+#tool-frontpage .rbx-stat { display: inline-flex; align-items: center; gap: 4px; }
+
+/* place-your-game affordance (pseudo content is never painted into exports) */
+#tool-frontpage .rbx-tile[data-pos]:not(.is-mine),
+#tool-frontpage .rbx-tile.is-mine { cursor: pointer; }
+#tool-frontpage .rbx-tile[data-pos]:not(.is-mine):hover .rbx-thumb::after {
+  content: 'place here';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  background: rgba(0, 0, 0, 0.52);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.85);
+  color: #ffffff;
+  font: 600 11px/1 var(--mono);
+  letter-spacing: 0.04em;
+}
+
+/* your-game highlight (preview helper — data-paint="skip", hidden while exporting) */
+#tool-frontpage .fp-hl {
+  display: none;
+  position: absolute;
+  inset: -6px;
+  z-index: 3;
+  border: 2px dashed #e5e5e5;
+  border-radius: 13px;
+  pointer-events: none;
+}
+#tool-frontpage .fp-hl-on .fp-hl { display: block; }
+#tool-frontpage .fp-hl-chip {
+  position: absolute;
+  top: -11px;
+  left: 8px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: #e5e5e5;
+  color: #000000;
+  font: 600 10px/1.5 var(--mono);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#tool-frontpage .rbx[data-theme="light"] .fp-hl { border-color: #111111; }
+#tool-frontpage .rbx[data-theme="light"] .fp-hl-chip { background: #111111; color: #f5f5f5; }
+
+/* ---- horizontal rows (charts / mobile) ---- */
+#tool-frontpage .rbx-rowwrap { position: relative; }
+#tool-frontpage .rbx-row {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* breathing room so the highlight outline + chip are not clipped */
+  padding: 13px 8px 6px;
+  margin: -13px -8px -6px;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+#tool-frontpage .rbx-row::-webkit-scrollbar { display: none; }
+#tool-frontpage .rbx-row > .rbx-tile { flex: none; width: var(--tw); }
+#tool-frontpage .rbx-arrow {
+  position: absolute;
+  z-index: 4;
+  top: calc(var(--tw) / 2 - 18px);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--r-arrow);
+  border: 1px solid var(--r-line);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+#tool-frontpage .rbx-arrow--l { left: -10px; }
+#tool-frontpage .rbx-arrow--r { right: -10px; }
+#tool-frontpage .rbx-rowwrap:hover .rbx-arrow { opacity: 1; }
+
+/* ---- compact density ---- */
+#tool-frontpage .rbx--compact .rbx-top { height: 50px; gap: 14px; }
+#tool-frontpage .rbx--compact .rbx-links { gap: 18px; font-size: 14px; }
+#tool-frontpage .rbx--compact .rbx-side { width: 184px; padding: 10px 8px; }
+#tool-frontpage .rbx--compact .rbx-nav-i { height: 34px; font-size: 14px; gap: 10px; }
+#tool-frontpage .rbx--compact .rbx-content { padding: 18px 20px 32px; }
+#tool-frontpage .rbx--compact .rbx-h1 { font-size: 26px; }
+#tool-frontpage .rbx--compact .rbx-sec { margin-top: 20px; }
+#tool-frontpage .rbx--compact .rbx-h2 { font-size: 18px; }
+#tool-frontpage .rbx--compact .rbx-grid { gap: 16px 12px; }
+#tool-frontpage .rbx--compact .rbx-name { font-size: 14px; margin-top: 6px; }
+#tool-frontpage .rbx--compact .rbx-meta { font-size: 12px; gap: 10px; }
+#tool-frontpage .rbx--compact .rbx-friends { gap: 14px; }
+#tool-frontpage .rbx--compact .rbx-friend { width: 68px; }
+#tool-frontpage .rbx--compact .rbx-av { width: 68px; height: 68px; }
+#tool-frontpage .rbx--compact .rbx-dot { width: 18px; height: 18px; border-width: 3px; }
+#tool-frontpage .rbx--compact .rbx-row { gap: 12px; }
+
+/* ---- mobile (phone frame) ---- */
+#tool-frontpage .rbx--mobile { border-radius: 38px; }
+#tool-frontpage .rbx-status {
+  flex: none;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 26px 0 34px;
+  background: var(--r-top);
+  font-size: 15px;
+  font-weight: 600;
+}
+#tool-frontpage .rbx-status-r { display: flex; align-items: center; gap: 6px; }
+@media (max-width: 400px) {
+  #tool-frontpage .rbx-status { padding: 6px 18px 0 26px; }
+}
+#tool-frontpage .rbx-top--m { height: 52px; gap: 12px; padding: 0 16px; }
+/* the title is the one top-bar item that may shrink, so the viewer chip is never pushed off the edge */
+#tool-frontpage .rbx-m-title { font-size: 20px; font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#tool-frontpage .rbx-top--m .rbx-right { gap: 14px; }
+#tool-frontpage .rbx-top--m .rbx-robux { font-size: 14px; }
+#tool-frontpage .rbx-top--m .rbx-top-ic,
+#tool-frontpage .rbx-top--m .rbx-robux,
+#tool-frontpage .rbx-top--m > svg { flex: none; }
+/* phone frame squeezed under 360 / 280 (js layout(): xs / xxs) */
+#tool-frontpage .rbx--xs .rbx-m-title { display: none; }
+#tool-frontpage .rbx--xs .rbx-top--m .rbx-right { gap: 10px; }
+#tool-frontpage .rbx--xxs .rbx-top--m .rbx-robux > span { display: none; }
+#tool-frontpage .rbx-top--m .rbx-search { max-width: none; height: 38px; border-radius: 19px; }
+#tool-frontpage .rbx--mobile .rbx-content { padding: 14px 16px 24px; }
+#tool-frontpage .rbx--mobile .rbx-h1 { font-size: 24px; }
+#tool-frontpage .rbx--mobile .rbx-h1--search { font-size: 20px; }
+#tool-frontpage .rbx--mobile .rbx-sec { margin-top: 22px; }
+#tool-frontpage .rbx--mobile .rbx-sec--friends { margin-top: 6px; }
+#tool-frontpage .rbx--mobile .rbx-sec-head { margin-bottom: 10px; }
+#tool-frontpage .rbx--mobile .rbx-h2 { font-size: 18px; }
+#tool-frontpage .rbx--mobile .rbx-see { font-size: 13px; }
+#tool-frontpage .rbx--mobile .rbx-pills { gap: 6px; margin-top: 10px; flex-wrap: nowrap; overflow: hidden; }
+#tool-frontpage .rbx--mobile .rbx-pill { height: 32px; padding: 0 12px; font-size: 13px; }
+#tool-frontpage .rbx--mobile .rbx-friends { gap: 12px; }
+#tool-frontpage .rbx--mobile .rbx-friend { width: 62px; }
+#tool-frontpage .rbx--mobile .rbx-av { width: 62px; height: 62px; }
+#tool-frontpage .rbx--mobile .rbx-dot { width: 16px; height: 16px; border-width: 3px; right: 1px; bottom: 1px; }
+#tool-frontpage .rbx--mobile .rbx-count { min-width: 22px; height: 22px; font-size: 11px; border-width: 2px; }
+#tool-frontpage .rbx--mobile .rbx-fname { font-size: 12px; margin-top: 6px; }
+#tool-frontpage .rbx--mobile .rbx-row { gap: 10px; }
+#tool-frontpage .rbx--mobile .rbx-grid { gap: 14px 10px; }
+#tool-frontpage .rbx--mobile .rbx-name { font-size: 13px; margin-top: 6px; }
+#tool-frontpage .rbx--mobile .rbx-meta { font-size: 11.5px; gap: 6px; margin-top: 2px; }
+/* narrow square tiles: tighter stats so "97% 40.3K" / "40,3 mil" isn't cut mid-number */
+#tool-frontpage .rbx--tight .rbx-meta { gap: 6px; }
+#tool-frontpage .rbx--mobile .rbx-stat,
+#tool-frontpage .rbx--tight .rbx-stat { gap: 3px; }
+#tool-frontpage .rbx--mobile .rbx-by { font-size: 11px; }
+#tool-frontpage .rbx--mobile .rbx-tile--wide .rbx-name { font-size: 14px; }
+#tool-frontpage .rbx--mobile .rbx-main { scrollbar-width: none; }
+#tool-frontpage .rbx--mobile .rbx-main::-webkit-scrollbar { display: none; }
+#tool-frontpage .rbx-tabbar {
+  flex: none;
+  height: 70px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-around;
+  padding: 8px 6px 0;
+  background: var(--r-top);
+}
+#tool-frontpage .rbx-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--r-fg3);
+}
+#tool-frontpage .rbx-tab.is-on { color: var(--r-fg); }

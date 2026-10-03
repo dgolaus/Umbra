@@ -4,6 +4,7 @@
      · document-level listeners (paste / keydown / dragover / drop) are
        guarded by Hub.isActive('mosaic') so they don't fire from other tools
      · upstream's bundled smooth-scroll IIFE is removed (hub.js provides it)
+     · filled slots get a "→ frontpage" button (Hub.send) next to the ×
    All features preserved: formats, ratios, gap, drag/drop/paste, reorder,
    filters, auto-arrange, presets, undo/redo (40), IndexedDB, PNG export.
    ========================================================================= */
@@ -214,10 +215,19 @@
       const img = document.createElement('img');
       img.src = item.dataUrl; img.alt = '';
       slot.appendChild(img);
+      const send = document.createElement('button');
+      send.type = 'button';
+      send.className = 'slot-send';
+      send.title = 'send to frontpage';
+      send.setAttribute('aria-label', 'send to frontpage');
+      send.innerHTML = '<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3 8h9.5M8.5 4 12.5 8l-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      slot.appendChild(send);
       const rm = document.createElement('button');
+      rm.type = 'button';
       rm.className = 'slot-remove';
       rm.textContent = '×';
-      rm.title = 'remover esta imagem';
+      rm.title = 'remove this image';
+      rm.setAttribute('aria-label', 'remove this image');
       slot.appendChild(rm);
     } else {
       slot.textContent = String(index + 1).padStart(2, '0');
@@ -333,8 +343,30 @@
     state.images = visible.concat(cached);
   }
 
+  // ====== → FRONTPAGE ======
+  function sendToFrontpage(index) {
+    const item = state.images[index];
+    if (!item) return;
+    if (window.Hub && Hub.send) {
+      try { Hub.send('frontpage', { kind: 'thumb', dataUrl: item.dataUrl, source: 'mosaic' }); }
+      catch (_) { showToast('frontpage not available'); }
+    } else showToast('frontpage not available');
+  }
+
   // ====== GRID EVENTS ======
+  // the send button lives inside a draggable slot: remember presses on it so
+  // dragstart can refuse to pick the slot up from there
+  let sendPressed = false;
+  gridPreview.addEventListener('pointerdown', (e) => {
+    sendPressed = !!(e.target.closest && e.target.closest('.slot-send'));
+  });
   gridPreview.addEventListener('click', (e) => {
+    const send = e.target.closest('.slot-send');
+    if (send) {
+      e.stopPropagation();
+      sendToFrontpage(parseInt(send.closest('.slot').dataset.index, 10));
+      return;
+    }
     const rm = e.target.closest('.slot-remove');
     if (rm) {
       e.stopPropagation();
@@ -352,6 +384,7 @@
     input.click();
   });
   gridPreview.addEventListener('dragstart', (e) => {
+    if (sendPressed) { e.preventDefault(); return; }
     const slot = e.target.closest('.slot'); if (!slot) return;
     const idx = parseInt(slot.dataset.index, 10);
     if (!state.images[idx]) { e.preventDefault(); return; }
@@ -514,7 +547,8 @@
       const del = document.createElement('span');
       del.className = 'chip-delete';
       del.textContent = '×';
-      del.title = 'remover preset';
+      del.title = 'remove preset';
+      del.setAttribute('aria-hidden', 'true');
       del.addEventListener('click', async (e) => {
         e.stopPropagation();
         userPresets.splice(i, 1);
@@ -630,6 +664,7 @@
       del.className = 'chip-delete';
       del.textContent = '×';
       del.title = 'delete board';
+      del.setAttribute('aria-hidden', 'true');
       del.addEventListener('click', async (e) => {
         e.stopPropagation();
         boards.splice(i, 1);

@@ -6,6 +6,8 @@
    guard on the boot-time hash deep-link (the hub uses #tool-style hashes).
    All features preserved: tax · gamepass · devex · black market · live
    USD→BRL with fallback + manual override · precision mode · localStorage.
+   Black market is now ONE block with a currency dropdown (ClassicDivines'
+   suggestion): the live fetch keeps every rate, not just BRL.
    ========================================================================= */
 (function () {
 /* =========================================================
@@ -57,13 +59,60 @@ const FETCH_TIMEOUT_MS  = 5000;
 const REFETCH_INTERVAL_MS = 30 * 60 * 1000;  // 30 min — auto-refresh em background
 const VISIBILITY_REFETCH_AGE_MS = 5 * 60 * 1000;  // 5 min — refetch ao voltar pra aba
 
+/* Cotações USD→moeda usadas se a API falhar e não houver cache.
+   Aproximadas, via open.er-api.com em 2026-10-02. BRL fica amarrado ao
+   USD_BRL_FALLBACK acima pra o DevEx continuar idêntico. */
+const FALLBACK_RATES = {
+  USD: 1,       BRL: USD_BRL_FALLBACK, EUR: 0.887,  GBP: 0.757,
+  ARS: 1523,    AUD: 1.443,  CAD: 1.423,  CHF: 0.832,
+  CLP: 973.3,   COP: 3308,   IDR: 17970,  INR: 96.38,
+  JPY: 157.9,   KRW: 1360,   MXN: 18.28,  MYR: 4.085,
+  NZD: 1.784,   PEN: 3.450,  PHP: 62.83,  PLN: 3.885,
+  THB: 33.67,   TRY: 49.12,  VND: 25941,  ZAR: 16.67,
+};
+
+/* Moedas do mercado paralelo. dec = casas exibidas (JPY/CLP/IDR/COP/KRW/VND
+   sem centavos na prática). sym = prefixo sem ambiguidade (vários pesos e
+   dólares usam "$" no próprio país). cc = regiões pra adivinhar o default. */
+const CURRENCIES = [
+  { code: 'USD', sym: '$',    locale: 'en-US', dec: 2, name: 'us dollar',          tags: 'usa united states america', cc: 'US EC SV PA PR' },
+  { code: 'BRL', sym: 'R$',   locale: 'pt-BR', dec: 2, name: 'brazilian real',     tags: 'brasil reais', cc: 'BR' },
+  { code: 'EUR', sym: '€',    locale: 'de-DE', dec: 2, name: 'euro',               tags: 'europe germany france spain italy portugal netherlands', cc: 'AT BE CY DE EE ES FI FR GR HR IE IT LT LU LV MT NL PT SI SK' },
+  { code: 'GBP', sym: '£',    locale: 'en-GB', dec: 2, name: 'british pound',      tags: 'uk united kingdom england sterling', cc: 'GB' },
+  { code: 'ARS', sym: 'AR$',  locale: 'es-AR', dec: 2, name: 'argentine peso',     tags: 'argentina', cc: 'AR' },
+  { code: 'AUD', sym: 'A$',   locale: 'en-AU', dec: 2, name: 'australian dollar',  tags: 'australia', cc: 'AU' },
+  { code: 'CAD', sym: 'CA$',  locale: 'en-CA', dec: 2, name: 'canadian dollar',    tags: 'canada', cc: 'CA' },
+  { code: 'CHF', sym: 'CHF',  locale: 'de-CH', dec: 2, name: 'swiss franc',        tags: 'switzerland', cc: 'CH LI' },
+  { code: 'CLP', sym: 'CL$',  locale: 'es-CL', dec: 0, name: 'chilean peso',       tags: 'chile', cc: 'CL' },
+  { code: 'COP', sym: 'COL$', locale: 'es-CO', dec: 0, name: 'colombian peso',     tags: 'colombia', cc: 'CO' },
+  { code: 'IDR', sym: 'Rp',   locale: 'id-ID', dec: 0, name: 'indonesian rupiah',  tags: 'indonesia', cc: 'ID' },
+  { code: 'INR', sym: '₹',    locale: 'en-IN', dec: 2, name: 'indian rupee',       tags: 'india', cc: 'IN' },
+  { code: 'JPY', sym: '¥',    locale: 'ja-JP', dec: 0, name: 'japanese yen',       tags: 'japan', cc: 'JP' },
+  { code: 'KRW', sym: '₩',    locale: 'ko-KR', dec: 0, name: 'south korean won',   tags: 'korea', cc: 'KR' },
+  { code: 'MXN', sym: 'MX$',  locale: 'es-MX', dec: 2, name: 'mexican peso',       tags: 'mexico', cc: 'MX' },
+  { code: 'MYR', sym: 'RM',   locale: 'ms-MY', dec: 2, name: 'malaysian ringgit',  tags: 'malaysia', cc: 'MY' },
+  { code: 'NZD', sym: 'NZ$',  locale: 'en-NZ', dec: 2, name: 'new zealand dollar', tags: 'new zealand', cc: 'NZ' },
+  { code: 'PEN', sym: 'S/',   locale: 'es-PE', dec: 2, name: 'peruvian sol',       tags: 'peru', cc: 'PE' },
+  { code: 'PHP', sym: '₱',    locale: 'en-PH', dec: 2, name: 'philippine peso',    tags: 'philippines pinoy', cc: 'PH' },
+  { code: 'PLN', sym: 'zł',   locale: 'pl-PL', dec: 2, name: 'polish zloty',       tags: 'poland', cc: 'PL' },
+  { code: 'THB', sym: '฿',    locale: 'th-TH', dec: 2, name: 'thai baht',          tags: 'thailand', cc: 'TH' },
+  { code: 'TRY', sym: '₺',    locale: 'tr-TR', dec: 2, name: 'turkish lira',       tags: 'turkey türkiye', cc: 'TR' },
+  { code: 'VND', sym: '₫',    locale: 'vi-VN', dec: 0, name: 'vietnamese dong',    tags: 'vietnam', cc: 'VN' },
+  { code: 'ZAR', sym: 'R',    locale: 'en-ZA', dec: 2, name: 'south african rand', tags: 'south africa', cc: 'ZA' },
+];
+const CURRENCY_BY_CODE = {};
+CURRENCIES.forEach((c) => { CURRENCY_BY_CODE[c.code] = c; });
+
 /* Chaves localStorage. */
 const STORAGE = {
   rateOverride: 'rcs.usd_brl_override',
   liveRate:     'rcs.usd_brl_live',
+  liveRates:    'rcs.rates_live',          // { rates: {USD→todas}, ts }
   precision:    'rcs.precision',
-  bmBrl:        'rcs.bm_brl_per_1k',
-  bmUsd:        'rcs.bm_usd_per_1k',
+  bmCurrency:   'rcs.bm_currency',
+  bmPrice:      'rcs.bm_price_',           // + código, ex. rcs.bm_price_JPY
+  bmBrl:        'rcs.bm_brl_per_1k',       // legado → migra pra BRL
+  bmUsd:        'rcs.bm_usd_per_1k',       // legado → migra pra USD
 };
 
 
@@ -75,6 +124,8 @@ const state = {
   usdBrlOverride:   null,              // se !== null, override manual
   lastFetchTs:      null,              // timestamp do último fetch live bem-sucedido
   fetchFailedShown: false,             // flag pra evitar spam de toast em falhas seguidas
+  rates:            Object.assign({}, FALLBACK_RATES),  // USD→moeda (live > cache > fallback)
+  bmCurrency:       'USD',
   precision:        false,
   reduceMotion:     window.matchMedia('(prefers-reduced-motion: reduce)').matches,
 };
@@ -192,6 +243,31 @@ const fmtPlain = (n, dec = 2) => {
   });
 };
 
+const currencyInfo = (code) => CURRENCY_BY_CODE[code] || CURRENCY_BY_CODE.USD;
+
+/* Valor monetário no locale da moeda, com o `sym` da tabela no lugar do
+   símbolo local (CA$ em vez de "$"). Casas fixas = dec (JPY/CLP/IDR → 0). */
+const curFormatters = {};
+function fmtCur(n, code) {
+  if (!isFinite(n)) return '—';
+  const cur = currencyInfo(code);
+  try {
+    let nf = curFormatters[cur.code];
+    if (!nf) {
+      nf = new Intl.NumberFormat(cur.locale, {
+        style: 'currency',
+        currency: cur.code,
+        minimumFractionDigits: cur.dec,
+        maximumFractionDigits: cur.dec,
+      });
+      curFormatters[cur.code] = nf;
+    }
+    return nf.formatToParts(n).map((p) => (p.type === 'currency' ? cur.sym : p.value)).join('');
+  } catch (e) {
+    return `${cur.sym} ${fmtPlain(n, cur.dec)}`;
+  }
+}
+
 
 /* ---------- 4. Calc ---------- */
 
@@ -219,28 +295,52 @@ function calcBlackmarket(robux, pricePer1k) {
   if (!isFinite(robux) || !isFinite(pricePer1k)) return NaN;
   return (robux / 1000) * pricePer1k;
 }
+function calcBlackmarketRobux(value, pricePer1k) {
+  if (!isFinite(value) || !isFinite(pricePer1k) || pricePer1k <= 0) return NaN;
+  return (value / pricePer1k) * 1000;
+}
+
+/* Quantas unidades da moeda valem 1 USD. BRL usa state.usdBrl pra respeitar
+   o override manual do DevEx; o resto vem de state.rates. */
+function usdRateFor(code) {
+  if (code === 'USD') return 1;
+  if (code === 'BRL') return state.usdBrl;
+  const r = state.rates[code];
+  return (typeof r === 'number' && r > 0) ? r : (FALLBACK_RATES[code] || NaN);
+}
 
 /* Compara o valor paralelo com o que o DevEx oficial pagaria pelos mesmos Robux.
-   Retorna { devexValue, devexOther, diffPct } onde:
-     - devexValue está na MESMA moeda do paralelo (currency='BRL'|'USD')
-     - devexOther está na moeda oposta
+   Retorna { devexValue, devexUsd, diffPct } onde:
+     - devexValue está na MESMA moeda do paralelo (usdRate = moeda por 1 USD)
+     - devexUsd é o mesmo valor em USD
      - diffPct = (paralelo - devex) / devex   (positivo se paralelo > devex)
 */
-function compareVsDevex(blackmarketValue, robux, currency, usdBrlRate) {
+function compareVsDevex(blackmarketValue, robux, usdRate) {
   if (!isFinite(blackmarketValue) || !isFinite(robux) || robux <= 0) return null;
+  if (!isFinite(usdRate) || usdRate <= 0) return null;
   const usd = robux * DEVEX_RATE_USD_PER_ROBUX;
-  const devexValue = currency === 'BRL' ? usd * usdBrlRate : usd;
-  const devexOther = currency === 'BRL' ? usd : usd * usdBrlRate;
+  const devexValue = usd * usdRate;
   if (devexValue <= 0) return null;
   return {
     devexValue,
-    devexOther,
+    devexUsd: usd,
     diffPct: (blackmarketValue - devexValue) / devexValue,
   };
 }
 
+/* Só códigos ISO com cotação numérica positiva. */
+function sanitizeRates(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object') return out;
+  Object.keys(raw).forEach((k) => {
+    const v = raw[k];
+    if (/^[A-Z]{3}$/.test(k) && typeof v === 'number' && isFinite(v) && v > 0) out[k] = v;
+  });
+  return out;
+}
 
-/* ---------- 5. Live USD→BRL fetch ---------- */
+
+/* ---------- 5. Live USD→BRL fetch (+ todas as cotações) ---------- */
 
 async function fetchUsdBrl() {
   const ctrl = new AbortController();
@@ -252,10 +352,12 @@ async function fetchUsdBrl() {
     const rate = json && json.rates && json.rates.BRL;
     if (typeof rate === 'number' && rate > 0) {
       const ts = Date.now();
+      const rates = sanitizeRates(json.rates);
       try {
         localStorage.setItem(STORAGE.liveRate, JSON.stringify({ rate, ts }));
       } catch (e) { /* ignore */ }
-      return { rate, source: 'live', ts };
+      lsSet(STORAGE.liveRates, JSON.stringify({ rates, ts }));
+      return { rate, rates, source: 'live', ts };
     }
     throw new Error('rate not found in response');
   } catch (err) {
@@ -274,6 +376,7 @@ async function refetchAndUpdate() {
     state.usdBrlLive = result.rate;
     state.lastFetchTs = result.ts;
     if (state.usdBrlOverride == null) state.usdBrl = result.rate;
+    state.rates = Object.assign({}, FALLBACK_RATES, result.rates);
     state.fetchFailedShown = false;
     refreshDevex();
   } else if (!state.fetchFailedShown) {
@@ -342,6 +445,38 @@ function lsSet(key, value) {
 }
 function lsDel(key) {
   try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
+}
+
+const bmPriceKey = (code) => STORAGE.bmPrice + code;
+
+/* Preços dos dois blocos antigos (brl/usd parallel) → chaves por moeda.
+   Chave nova já existente vence; a antiga só some se a nova ficou salva. */
+function migrateLegacyBm() {
+  [['BRL', STORAGE.bmBrl], ['USD', STORAGE.bmUsd]].forEach(([code, oldKey]) => {
+    const old = lsGet(oldKey);
+    if (old == null) return;
+    const key = bmPriceKey(code);
+    if (lsGet(key) == null && old.trim() !== '') lsSet(key, old);
+    if (lsGet(key) != null || old.trim() === '') lsDel(oldKey);
+  });
+}
+
+/* Moeda inicial: salva > preço legado (BRL, depois USD) > região do browser > USD. */
+function initialCurrency() {
+  const saved = lsGet(STORAGE.bmCurrency);
+  if (saved && CURRENCY_BY_CODE[saved]) return saved;
+  if (lsGet(bmPriceKey('BRL'))) return 'BRL';
+  if (lsGet(bmPriceKey('USD'))) return 'USD';
+  const langs = (navigator.languages && navigator.languages.length)
+    ? navigator.languages : [navigator.language || ''];
+  for (const lang of langs) {
+    const m = /[-_]([A-Za-z]{2})(?:$|[-_])/.exec(String(lang));
+    if (!m) continue;
+    const region = m[1].toUpperCase();
+    const hit = CURRENCIES.find((c) => c.cc.split(' ').indexOf(region) !== -1);
+    if (hit) return hit.code;
+  }
+  return 'USD';
 }
 
 
@@ -575,120 +710,300 @@ function setupDevex() {
 }
 
 /* ---- Black Market ----
+   Um bloco só; a moeda vem do dropdown (clicar no código ou no prefixo).
    Bidirecional: edita robux → calcula valor; edita valor → calcula robux.
-   Ambos compartilham o mesmo "preço por 1k". lastEdited define qual é a
-   fonte e qual é derivado quando o preço muda. */
+   Ambos compartilham o mesmo "preço por 1k" (salvo por moeda). lastEdited
+   define qual é a fonte e qual é derivado quando o preço muda. */
 function setupBlackmarket() {
-  const brlPrice = $('#bm-brl-price');
-  const brlRobux = $('#bm-brl-robux');
-  const brlValue = $('#bm-brl-value');
-  const brlComp  = $('[data-compare-brl]');
-  const brlEquiv = $('[data-devex-equiv-brl]');
-  const brlDiff  = $('[data-diff-brl]');
+  const priceEl = $('#bm-price');
+  const robuxEl = $('#bm-robux');
+  const valueEl = $('#bm-value');
+  const compEl  = $('[data-compare]');
+  const equivEl = $('[data-devex-equiv]');
+  const diffEl  = $('[data-diff]');
+  const codeEls = $$('[data-bm-code]');
+  const symEls  = $$('[data-bm-sym]');
+  const openers = $$('[data-bm-cur-open]');
+  if (!priceEl || !robuxEl || !valueEl || !compEl || !equivEl || !diffEl) return;
 
-  const usdPrice = $('#bm-usd-price');
-  const usdRobux = $('#bm-usd-robux');
-  const usdValue = $('#bm-usd-value');
-  const usdComp  = $('[data-compare-usd]');
-  const usdEquiv = $('[data-devex-equiv-usd]');
-  const usdDiff  = $('[data-diff-usd]');
+  let lastEdited = 'robux';
 
-  let lastEditedBrl = 'robux';
-  let lastEditedUsd = 'robux';
-
-  function renderOne(opts) {
-    const price    = parseNumber(opts.priceEl.value);
-    const robuxRaw = parseNumber(opts.robuxEl.value);
-    const valueRaw = parseNumber(opts.valueEl.value);
+  function render() {
+    const cur     = currencyInfo(state.bmCurrency);
+    const price   = parseNumber(priceEl.value);
+    const priceOk = isFinite(price) && price > 0;
 
     let robux = NaN;
     let value = NaN;
 
-    if (opts.lastEdited === 'value') {
-      value = valueRaw;
-      if (isFinite(value) && isFinite(price) && price > 0) {
-        robux = (value / price) * 1000;
-        opts.robuxEl.value = fmtRobux(Math.round(robux));
-      } else {
-        opts.robuxEl.value = '';
-      }
+    if (lastEdited === 'value') {
+      value = parseNumber(valueEl.value);
+      robux = priceOk ? calcBlackmarketRobux(value, price) : NaN;
+      robuxEl.value = isFinite(robux) ? fmtRobux(Math.round(robux)) : '';
     } else {
-      robux = robuxRaw;
-      if (isFinite(robux) && isFinite(price) && price > 0) {
-        value = (robux / 1000) * price;
-        opts.valueEl.value = fmtPlain(value, 2);
-      } else {
-        opts.valueEl.value = '';
-      }
+      robux = parseNumber(robuxEl.value);
+      value = priceOk ? calcBlackmarket(robux, price) : NaN;
+      valueEl.value = isFinite(value) ? fmtPlain(value, cur.dec) : '';
     }
 
     /* Esconde comparativo se algum lado estiver vazio/inválido. */
-    if (!isFinite(price) || !isFinite(robux) || !isFinite(value) || robux <= 0 || value <= 0 || price <= 0) {
-      opts.compEl.hidden = true;
+    if (!priceOk || !(robux > 0) || !(value > 0)) {
+      compEl.hidden = true;
       return;
     }
 
-    const cmp = compareVsDevex(value, robux, opts.currency, state.usdBrl);
-    if (!cmp) { opts.compEl.hidden = true; return; }
+    const rate = usdRateFor(cur.code);
+    const cmp  = compareVsDevex(value, robux, rate);
+    if (!cmp) { compEl.hidden = true; return; }
 
-    opts.compEl.hidden = false;
-    opts.equivEl.textContent = `${opts.fmt(cmp.devexValue)} (${opts.fmtOther(cmp.devexOther)})`;
+    /* Entre parênteses: o mesmo valor em USD (ou em BRL quando a moeda já é USD). */
+    const other = cur.code === 'USD'
+      ? fmtCur(cmp.devexUsd * state.usdBrl, 'BRL')
+      : fmtCur(cmp.devexUsd, 'USD');
+    compEl.hidden = false;
+    equivEl.textContent = `${fmtCur(cmp.devexValue, cur.code)} (${other})`;
+    equivEl.title = `1 usd = ${fmtPlain(rate, rate < 10 ? 4 : 2)} ${cur.code.toLowerCase()}`;
 
     const sign = cmp.diffPct >= 0 ? '+' : '-';
     const pct  = Math.abs(cmp.diffPct * 100).toFixed(1);
-    opts.diffEl.textContent = ` · diferença: ${sign}${pct}% vs paralelo`;
-    opts.diffEl.classList.toggle('positive', cmp.diffPct > 0);
-    opts.diffEl.classList.toggle('negative', cmp.diffPct < 0);
+    diffEl.textContent = ` · parallel ${sign}${pct}% vs devex`;
+    diffEl.classList.toggle('positive', cmp.diffPct > 0);
+    diffEl.classList.toggle('negative', cmp.diffPct < 0);
+  }
+  refreshBlackmarket = render;
+
+  function applyCurrency(code, persist) {
+    const cur = currencyInfo(code);
+    state.bmCurrency = cur.code;
+    if (persist) lsSet(STORAGE.bmCurrency, cur.code);
+
+    const label = `change currency (now ${cur.code.toLowerCase()} · ${cur.name})`;
+    codeEls.forEach((el) => { el.textContent = cur.code.toLowerCase(); });
+    symEls.forEach((el) => { el.textContent = cur.sym; });
+    openers.forEach((el) => el.setAttribute('aria-label', label));
+
+    const placeholder = fmtPlain(0, cur.dec);
+    priceEl.placeholder = placeholder;
+    valueEl.placeholder = placeholder;
+    priceEl.value = lsGet(bmPriceKey(cur.code), '');
+
+    /* Robux não dependem da moeda: havendo quantidade, ela vira a fonte. */
+    if (isFinite(parseNumber(robuxEl.value))) lastEdited = 'robux';
+    render();
   }
 
-  function renderBRL() {
-    renderOne({
-      priceEl: brlPrice, robuxEl: brlRobux, valueEl: brlValue,
-      compEl:  brlComp,  equivEl: brlEquiv, diffEl: brlDiff,
-      lastEdited: lastEditedBrl,
-      currency: 'BRL',
-      fmt:      (n) => fmtBRL(n),
-      fmtOther: (n) => fmtUSD(n),
+  priceEl.addEventListener('input', () => {
+    if (priceEl.value) lsSet(bmPriceKey(state.bmCurrency), priceEl.value);
+    else lsDel(bmPriceKey(state.bmCurrency));
+    render();
+  });
+  robuxEl.addEventListener('input', () => { lastEdited = 'robux'; render(); });
+  valueEl.addEventListener('input', () => { lastEdited = 'value'; render(); });
+
+  const clearBtn = $('[data-clear="bm"]');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      priceEl.value = ''; robuxEl.value = ''; valueEl.value = '';
+      lsDel(bmPriceKey(state.bmCurrency));
+      lastEdited = 'robux';
+      render();
     });
   }
-  function renderUSD() {
-    renderOne({
-      priceEl: usdPrice, robuxEl: usdRobux, valueEl: usdValue,
-      compEl:  usdComp,  equivEl: usdEquiv, diffEl: usdDiff,
-      lastEdited: lastEditedUsd,
-      currency: 'USD',
-      fmt:      (n) => fmtUSD(n),
-      fmtOther: (n) => fmtBRL(n),
+
+  migrateLegacyBm();
+  setupCurrencyPicker((code) => {
+    applyCurrency(code, true);
+    flashInput(priceEl);
+  });
+  applyCurrency(initialCurrency(), false);
+}
+
+/* ---- Currency picker — os botões (código no título, prefixos dos campos)
+        abrem um listbox com busca. Foco fica na busca (combobox): setas
+        navegam, enter escolhe, esc fecha. Ancorado no botão clicado. */
+function setupCurrencyPicker(onPick) {
+  const block   = $('[data-bm]');
+  const menu    = $('[data-bm-menu]');
+  const search  = $('#bm-cur-search');
+  const list    = $('#bm-cur-list');
+  const emptyEl = $('[data-bm-empty]');
+  const openers = $$('[data-bm-cur-open]');
+  if (!block || !menu || !search || !list || !openers.length) return;
+
+  const frag = document.createDocumentFragment();
+  const options = CURRENCIES.map((c) => {
+    const li = document.createElement('li');
+    li.id = `bm-cur-opt-${c.code}`;
+    li.className = 'bm-cur-opt';
+    li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', 'false');
+    li.dataset.code = c.code;
+    [['code', c.code.toLowerCase()], ['sym', c.sym], ['name', c.name]].forEach(([part, txt]) => {
+      const span = document.createElement('span');
+      span.className = `bm-cur-opt__${part}`;
+      span.textContent = txt;
+      li.appendChild(span);
     });
+    frag.appendChild(li);
+    return li;
+  });
+  list.appendChild(frag);
+
+  let openedBy = null;
+  let visible  = options;
+  let active   = null;
+  const isOpen = () => !menu.hidden;
+
+  function setActive(li, scroll = true) {
+    if (active) active.classList.remove('is-active');
+    active = li || null;
+    if (!active) { search.removeAttribute('aria-activedescendant'); return; }
+    active.classList.add('is-active');
+    search.setAttribute('aria-activedescendant', active.id);
+    if (!scroll) return;
+    const top    = active.offsetTop;
+    const bottom = top + active.offsetHeight;
+    if (top < list.scrollTop) list.scrollTop = top;
+    else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight;
   }
-  function renderAll() { renderBRL(); renderUSD(); }
-  refreshBlackmarket = renderAll;
 
-  brlPrice.addEventListener('input', () => { lsSet(STORAGE.bmBrl, brlPrice.value); renderBRL(); });
-  brlRobux.addEventListener('input', () => { lastEditedBrl = 'robux'; renderBRL(); });
-  brlValue.addEventListener('input', () => { lastEditedBrl = 'value'; renderBRL(); });
+  /* Filtra por código, nome, símbolo e tags; o melhor match fica ativo
+     (prefixo do código > prefixo do nome / símbolo exato > contém). */
+  function filter() {
+    const q = search.value.trim().toLowerCase();
+    let best = null;
+    let bestScore = 9;
+    visible = [];
+    options.forEach((li) => {
+      const c    = currencyInfo(li.dataset.code);
+      const code = c.code.toLowerCase();
+      const sym  = c.sym.toLowerCase();
+      let score = 9;
+      if (!q) score = 3;
+      else if (code.indexOf(q) === 0) score = 0;
+      else if (c.name.indexOf(q) === 0 || sym === q) score = 1;
+      else if (`${code} ${c.name} ${sym} ${c.tags}`.indexOf(q) !== -1) score = 2;
+      li.hidden = score === 9;
+      if (li.hidden) return;
+      visible.push(li);
+      if (score < bestScore) { best = li; bestScore = score; }
+    });
+    if (emptyEl) emptyEl.hidden = visible.length > 0;
+    const selected = q ? null : options.find((li) => li.dataset.code === state.bmCurrency);
+    setActive(selected || best);
+  }
 
-  usdPrice.addEventListener('input', () => { lsSet(STORAGE.bmUsd, usdPrice.value); renderUSD(); });
-  usdRobux.addEventListener('input', () => { lastEditedUsd = 'robux'; renderUSD(); });
-  usdValue.addEventListener('input', () => { lastEditedUsd = 'value'; renderUSD(); });
+  /* Abaixo do botão; vira pra cima se não couber na viewport (nem acima do
+     rodapé do hub, que pinta por cima do painel). */
+  function position(trigger) {
+    const box  = block.getBoundingClientRect();
+    const r    = trigger.getBoundingClientRect();
+    const w    = menu.offsetWidth;
+    const h    = menu.offsetHeight;
+    const left = Math.max(0, Math.min(r.left - box.left, box.width - w));
+    let limit = window.innerHeight;
+    const footer = document.querySelector('.hub-footer');
+    if (footer) {
+      const fr = footer.getBoundingClientRect();
+      if (fr.height > 0 && fr.top >= r.bottom) limit = Math.min(limit, fr.top);
+    }
+    const roomBelow = limit - r.bottom;
+    const up = roomBelow < h + 12 && r.top > roomBelow;
+    menu.style.left = `${Math.round(left)}px`;
+    menu.style.top  = `${Math.round(up ? r.top - box.top - h - 6 : r.bottom - box.top + 6)}px`;
+    menu.classList.toggle('is-up', up);
+  }
 
-  $('[data-clear="bm"]').addEventListener('click', () => {
-    brlPrice.value = ''; brlRobux.value = ''; brlValue.value = '';
-    usdPrice.value = ''; usdRobux.value = ''; usdValue.value = '';
-    lsDel(STORAGE.bmBrl);
-    lsDel(STORAGE.bmUsd);
-    lastEditedBrl = 'robux';
-    lastEditedUsd = 'robux';
-    renderAll();
+  function open(trigger) {
+    openedBy = trigger;
+    options.forEach((li) => li.setAttribute('aria-selected', String(li.dataset.code === state.bmCurrency)));
+    openers.forEach((b) => b.setAttribute('aria-expanded', String(b === trigger)));
+    menu.hidden = false;
+    search.value = '';
+    filter();
+    position(trigger);
+    /* Em touch não abre o teclado sozinho — a busca fica a um toque. */
+    const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    if (!coarse) search.focus({ preventScroll: true });
+  }
+
+  function close(restoreFocus) {
+    if (!isOpen()) return;
+    menu.hidden = true;
+    openers.forEach((b) => b.setAttribute('aria-expanded', 'false'));
+    setActive(null);
+    if (restoreFocus && openedBy) openedBy.focus({ preventScroll: true });
+  }
+
+  function choose(li) {
+    if (!li) return;
+    const code = li.dataset.code;
+    close(true);
+    if (code !== state.bmCurrency) onPick(code);
+  }
+
+  openers.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (isOpen() && openedBy === btn) close(true);
+      else open(btn);
+    });
+    btn.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!isOpen() || openedBy !== btn) open(btn);
+        else search.focus({ preventScroll: true });
+      } else if (e.key === 'Escape' && isOpen()) {
+        e.preventDefault();
+        close(true);
+      }
+    });
   });
 
-  /* Restaurar últimos preços paralelos digitados. */
-  const savedBrl = lsGet(STORAGE.bmBrl);
-  const savedUsd = lsGet(STORAGE.bmUsd);
-  if (savedBrl) brlPrice.value = savedBrl;
-  if (savedUsd) usdPrice.value = savedUsd;
+  search.addEventListener('input', filter);
+  search.addEventListener('keydown', (e) => {
+    const i = visible.indexOf(active);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActive(visible[Math.min(visible.length - 1, i + 1)]);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActive(visible[Math.max(0, i - 1)]);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      choose(active);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      close(true);
+    } else if (e.key === 'Tab') {
+      close(false);
+    }
+  });
 
-  renderAll();
+  list.addEventListener('click', (e) => {
+    const li = e.target.closest('[role="option"]');
+    if (li) choose(li);
+  });
+  list.addEventListener('pointermove', (e) => {
+    const li = e.target.closest('[role="option"]');
+    if (li && li !== active) setActive(li, false);
+  });
+  /* Clique dentro do menu não tira o foco da busca (senão o focusout fecha). */
+  menu.addEventListener('mousedown', (e) => { if (e.target !== search) e.preventDefault(); });
+  /* Roda do mouse rola a lista nativamente — o smooth-scroll do hub escuta
+     no window, então a propagação para aqui. */
+  list.addEventListener('wheel', (e) => e.stopPropagation(), { passive: true });
+
+  menu.addEventListener('focusout', (e) => {
+    const to = e.relatedTarget;
+    if (to && !menu.contains(to) && openers.indexOf(to) === -1) close(false);
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (!isOpen()) return;
+    if (menu.contains(e.target) || openers.some((b) => b.contains(e.target))) return;
+    close(false);
+  });
+  window.addEventListener('resize', () => { if (isOpen() && openedBy) position(openedBy); });
+  document.addEventListener('hub:show', () => close(false));
 }
 
 /* ---- Gamepass (uni-direcional: input = quanto quer receber) ---- */
@@ -919,8 +1234,7 @@ function setupNumericFilters() {
     '#tax-gross', '#tax-net',
     '#dx-robux', '#dx-usd', '#dx-brl', '#dx-rate',
     '#gp-target',
-    '#bm-brl-price', '#bm-brl-robux', '#bm-brl-value',
-    '#bm-usd-price', '#bm-usd-robux', '#bm-usd-value',
+    '#bm-price', '#bm-robux', '#bm-value',
   ];
   selectors.forEach((sel) => {
     const el = document.querySelector(sel);
@@ -1062,7 +1376,7 @@ function attachThousandsFormatter(input) {
 }
 
 function setupRobuxFormatters() {
-  const selectors = ['#tax-gross', '#tax-net', '#dx-robux', '#gp-target', '#bm-brl-robux', '#bm-usd-robux'];
+  const selectors = ['#tax-gross', '#tax-net', '#dx-robux', '#gp-target', '#bm-robux'];
   selectors.forEach((sel) => {
     const el = document.querySelector(sel);
     if (el) attachThousandsFormatter(el);
@@ -1086,6 +1400,15 @@ async function boot() {
         state.usdBrl      = parsed.rate;
         state.lastFetchTs = parsed.ts || null;
       }
+    }
+  } catch (e) { /* ignore */ }
+
+  /* Demais cotações cacheadas (black market em qualquer moeda). */
+  try {
+    const raw = lsGet(STORAGE.liveRates);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.rates) state.rates = Object.assign({}, FALLBACK_RATES, sanitizeRates(parsed.rates));
     }
   } catch (e) { /* ignore */ }
 

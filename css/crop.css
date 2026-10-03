@@ -1,0 +1,386 @@
+/* =========================================================================
+   TOOL 5 · CROP — photoshop-style crop for thumbnails & icons
+   Scoped under #tool-crop. Uses the shared core primitives.
+   The overlay is plain DOM (crisp at any DPI): the image frame clips a
+   .cr-shade whose giant box-shadow dims everything outside the crop; the
+   interactive .cr-box (white hairline, L corners, edge bars, thirds grid)
+   sits in an unclipped layer on top so handles at the image edge stay
+   reachable.
+   ========================================================================= */
+
+#tool-crop [hidden] { display: none !important; }
+
+#tool-crop {
+  --cr-hit: 28px;           /* handle hit area (touch: bigger, below) */
+  --cr-arm: 18px;           /* L-corner arm / edge-bar length */
+  --cr-thick: 3px;          /* handle stroke */
+  --cr-dim: rgba(0, 0, 0, 0.55);
+}
+@media (pointer: coarse) {
+  #tool-crop { --cr-hit: 38px; --cr-arm: 20px; }
+}
+
+#tool-crop .wrap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 26px clamp(14px, 3vw, 32px) 40px;
+}
+
+/* ---- header ---- */
+#tool-crop .cr-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+#tool-crop .cr-head h1 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.02em; color: var(--fg-strong); }
+#tool-crop .cr-head h1 .accent { color: var(--accent); }
+#tool-crop .cr-head .sub { margin: 5px 0 0; font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+#tool-crop .cr-head .sub #cr-info { color: var(--fg); }
+#tool-crop .cr-head .privacy { font-size: 10.5px; color: var(--dim); }
+#tool-crop .cr-head .privacy::before { content: '🔒 '; }
+
+/* ---- two-column layout: stage | panel ---- */
+#tool-crop .cr-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 22px;
+  align-items: start;
+}
+
+/* ---- stage ---- */
+#tool-crop .cr-stage {
+  position: relative;
+  /* top ≈ shell (nav-top + nav-h + 14) + wrap 26 + header ≈ 100, plus a ~22px gap at the bottom */
+  height: calc(100dvh - var(--nav-top, 12px) - var(--nav-h, 52px) - 162px);
+  min-height: 520px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  /* solid-ish bg instead of backdrop blur: the overlay repaints on every drag frame */
+  background: rgba(14, 14, 17, 0.72);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+#tool-crop .cr-view {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 45%, rgba(255, 255, 255, 0.025), transparent 70%),
+    #050505;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* empty state: the whole view is a dropzone */
+#tool-crop .cr-drop {
+  position: absolute;
+  inset: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 24px 18px;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.012);
+}
+#tool-crop .cr-drop .main { font-size: 13.5px; margin-bottom: 2px; }
+#tool-crop .cr-drop .main .kbd { margin: 0 0 0 2px; font-size: 11px; }
+#tool-crop .cr-drop .hint { max-width: 380px; line-height: 1.6; }
+#tool-crop .cr-drop-ico {
+  font-size: 40px;
+  line-height: 1;
+  margin-bottom: 12px;
+  color: var(--dim);
+  transition: color 0.15s, transform 0.2s var(--ease-out);
+}
+#tool-crop .cr-drop:hover .cr-drop-ico { color: var(--fg); transform: scale(1.06); }
+#tool-crop .cr-stage.drag-over .cr-drop { border-color: var(--accent); background: var(--accent-dim); color: var(--fg-strong); }
+#tool-crop .cr-stage.drag-over.has-image .cr-view { box-shadow: inset 0 0 0 2px var(--accent); }
+
+/* image frame (clips the dim) */
+#tool-crop .cr-frame {
+  position: absolute;
+  overflow: hidden;
+  background: repeating-conic-gradient(#1a1a1f 0% 25%, #141418 0% 50%) 50% / 16px 16px;  /* shows through transparent pngs */
+  box-shadow: 0 18px 50px -20px rgba(0, 0, 0, 0.9);
+}
+#tool-crop .cr-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+#tool-crop .cr-frame.is-pixel img { image-rendering: pixelated; }
+#tool-crop .cr-shade {
+  position: absolute;
+  pointer-events: none;
+  box-shadow: 0 0 0 100vmax var(--cr-dim);
+}
+
+/* interactive layer (not clipped) */
+#tool-crop .cr-ui {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+#tool-crop .cr-box {
+  position: absolute;
+  pointer-events: auto;
+  cursor: move;
+  touch-action: none;
+  outline: none;
+  /* 1px white border inside the crop + faint dark hairline outside (reads on white images) */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.92), 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+/* core's :focus-visible must never round the crop (it has to match the square dim cut-out). the ring is
+   for keyboard users only — crop.js sets .is-kbd on Tab / keys and clears it on pointer use */
+#tool-crop .cr-box:focus-visible {
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.92), 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+#tool-crop .cr-box.is-kbd:focus-visible {
+  box-shadow: inset 0 0 0 1px #fff, 0 0 0 1px rgba(0, 0, 0, 0.35), 0 0 0 4px rgba(255, 255, 255, 0.22);
+}
+
+/* rule-of-thirds grid — only while moving / resizing */
+#tool-crop .cr-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+#tool-crop .cr-ui.is-dragging .cr-grid { opacity: 1; }
+#tool-crop .cr-grid i { position: absolute; background: rgba(255, 255, 255, 0.35); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.12); }
+#tool-crop .cr-grid i:nth-child(1) { left: 33.333%; top: 0; bottom: 0; width: 1px; }
+#tool-crop .cr-grid i:nth-child(2) { left: 66.666%; top: 0; bottom: 0; width: 1px; }
+#tool-crop .cr-grid i:nth-child(3) { top: 33.333%; left: 0; right: 0; height: 1px; }
+#tool-crop .cr-grid i:nth-child(4) { top: 66.666%; left: 0; right: 0; height: 1px; }
+
+/* ---- handles: invisible ≥28px hit areas, white strokes drawn by ::before / ::after ----
+   --cr-in = how far a hit area reaches INSIDE the box (hit / 2 normally; crop.js lowers it to
+   ¼ of the short side on small boxes so the middle always moves the box — photoshop).
+   --c = the box edge / corner's offset inside the hit box (= hit − in). strokes sit 1px
+   outside the edge and 2px inside, like photoshop's. */
+#tool-crop .cr-box { --cr-in: calc(var(--cr-hit) / 2); }
+#tool-crop .cr-h {
+  --c: calc(var(--cr-hit) - var(--cr-in));
+  position: absolute;
+  z-index: 1;
+  pointer-events: auto;
+  touch-action: none;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.7));
+}
+#tool-crop .cr-h::before,
+#tool-crop .cr-h::after {
+  content: '';
+  position: absolute;
+  background: #fff;
+  border-radius: 0.5px;
+  pointer-events: none;     /* strokes never widen the hit area (long arms on a tiny box) */
+}
+/* edges span the whole side between the corners — drag anywhere on the line */
+#tool-crop .cr-h--n,
+#tool-crop .cr-h--s { left: var(--cr-in); right: var(--cr-in); height: var(--cr-hit); cursor: ns-resize; }
+#tool-crop .cr-h--e,
+#tool-crop .cr-h--w { top: var(--cr-in); bottom: var(--cr-in); width: var(--cr-hit); cursor: ew-resize; }
+#tool-crop .cr-h--n { top: calc(var(--c) * -1); }
+#tool-crop .cr-h--s { bottom: calc(var(--c) * -1); }
+#tool-crop .cr-h--e { right: calc(var(--c) * -1); }
+#tool-crop .cr-h--w { left: calc(var(--c) * -1); }
+#tool-crop .cr-h--edge::after { content: none; }
+#tool-crop .cr-h--n::before,
+#tool-crop .cr-h--s::before { left: 50%; width: var(--cr-arm); margin-left: calc(var(--cr-arm) / -2); height: var(--cr-thick); }
+#tool-crop .cr-h--n::before { top: calc(var(--c) - 1px); }
+#tool-crop .cr-h--s::before { bottom: calc(var(--c) - 1px); }
+#tool-crop .cr-h--e::before,
+#tool-crop .cr-h--w::before { top: 50%; height: var(--cr-arm); margin-top: calc(var(--cr-arm) / -2); width: var(--cr-thick); }
+#tool-crop .cr-h--e::before { right: calc(var(--c) - 1px); }
+#tool-crop .cr-h--w::before { left: calc(var(--c) - 1px); }
+
+/* corners: L shapes (::before = horizontal arm, ::after = vertical arm) */
+#tool-crop .cr-h--corner { z-index: 2; width: var(--cr-hit); height: var(--cr-hit); }
+#tool-crop .cr-h--corner::before { width: var(--cr-arm); height: var(--cr-thick); }
+#tool-crop .cr-h--corner::after  { width: var(--cr-thick); height: var(--cr-arm); }
+#tool-crop .cr-h--nw { left: calc(var(--c) * -1); top: calc(var(--c) * -1); cursor: nwse-resize; }
+#tool-crop .cr-h--ne { right: calc(var(--c) * -1); top: calc(var(--c) * -1); cursor: nesw-resize; }
+#tool-crop .cr-h--se { right: calc(var(--c) * -1); bottom: calc(var(--c) * -1); cursor: nwse-resize; }
+#tool-crop .cr-h--sw { left: calc(var(--c) * -1); bottom: calc(var(--c) * -1); cursor: nesw-resize; }
+#tool-crop .cr-h--nw::before, #tool-crop .cr-h--nw::after { left: calc(var(--c) - 1px); top: calc(var(--c) - 1px); }
+#tool-crop .cr-h--ne::before, #tool-crop .cr-h--ne::after { right: calc(var(--c) - 1px); top: calc(var(--c) - 1px); }
+#tool-crop .cr-h--se::before, #tool-crop .cr-h--se::after { right: calc(var(--c) - 1px); bottom: calc(var(--c) - 1px); }
+#tool-crop .cr-h--sw::before, #tool-crop .cr-h--sw::after { left: calc(var(--c) - 1px); bottom: calc(var(--c) - 1px); }
+/* tiny box: shorter strokes, no edge bars (the corners already cover it) */
+#tool-crop .cr-box.is-small { --cr-arm: 10px; }
+#tool-crop .cr-box.is-small .cr-h--edge::before { content: none; }
+
+/* readout badge: crop size in image px */
+#tool-crop .cr-badge {
+  position: absolute;
+  z-index: 3;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--fg-strong);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+#tool-crop .cr-ui.is-dragging .cr-badge,
+#tool-crop .cr-badge.is-on { opacity: 1; }
+
+/* ---- floating toolbar (glass pill, bottom-centre) ---- */
+#tool-crop .cr-bar {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: max-content;
+  max-width: calc(100% - 20px);
+  padding: 5px;
+  background: rgba(12, 12, 15, 0.86);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+}
+#tool-crop .cr-bar-label { padding: 0 4px 0 10px; font-size: 10.5px; color: var(--dim); }
+#tool-crop .cr-bar select.select {
+  height: 30px;
+  padding: 0 28px 0 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  color: var(--fg-strong);
+}
+#tool-crop .cr-tbtn {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s, border-color 0.15s, transform 0.1s;
+}
+#tool-crop .cr-tbtn:hover:not(:disabled) { color: var(--fg-strong); background: var(--bg-hover); border-color: var(--line-strong); }
+#tool-crop .cr-tbtn:active:not(:disabled) { transform: scale(0.95); }
+#tool-crop .cr-tbtn:disabled { opacity: 0.3; cursor: not-allowed; }
+#tool-crop .cr-tbtn--icon { width: 30px; padding: 0; font-size: 15px; line-height: 1; }
+#tool-crop .cr-sep { width: 1px; height: 18px; margin: 0 3px; background: var(--line-strong); }
+
+/* ---- side panel ---- */
+#tool-crop .cr-panel {
+  position: sticky;
+  top: calc(var(--nav-top) + var(--nav-h) + 14px);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+#tool-crop .cr-preview {
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: repeating-conic-gradient(#1a1a1f 0% 25%, #141418 0% 50%) 50% / 16px 16px;
+  overflow: hidden;
+}
+#tool-crop .cr-preview canvas { display: block; box-shadow: 0 6px 24px -8px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.06); }
+#tool-crop .cr-prev-empty { font-size: 11px; color: var(--dim); }
+#tool-crop .cr-out-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 9px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+#tool-crop #cr-out-size { color: var(--fg-strong); }
+/* the 'upscaled from …' note always owns its own line (shown / hidden by visibility) → no panel jump */
+#tool-crop .cr-up { display: block; flex-basis: 100%; line-height: 1.6; height: 1.6em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin-top: -6px; color: var(--dim); font-size: 10.5px; }
+
+#tool-crop .cr-sizes .chip { padding: 5px 10px; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+
+#tool-crop .cr-name { display: flex; align-items: center; gap: 0; }
+#tool-crop .cr-name .text-input { flex: 1; min-width: 0; }
+#tool-crop .cr-name .text-input:disabled { opacity: 0.45; cursor: not-allowed; }
+#tool-crop .cr-ext { flex: none; padding-left: 8px; font-size: 12px; color: var(--dim); }
+
+#tool-crop .cr-actions { display: flex; gap: 8px; }
+#tool-crop .cr-actions .grow { flex: 1; min-width: 0; }
+#tool-crop .cr-send { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+#tool-crop .cr-send .btn {
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#tool-crop .cr-keys { margin: 14px 0 0; font-size: 10.5px; line-height: 1.9; color: var(--dim); }
+#tool-crop .cr-keys .kbd { margin: 0 4px 0 0; }
+
+/* ---- responsive ---- */
+@media (max-width: 860px) {
+  #tool-crop .cr-layout { grid-template-columns: minmax(0, 1fr); }
+  #tool-crop .cr-stage { height: 70dvh; min-height: 420px; }
+  /* with an image, crop.js sizes the stage to the fitted image (≤ 70% of the viewport) so the
+     toolbar sits right under it instead of below the fold */
+  #tool-crop .cr-stage.has-image { min-height: 260px; }
+  #tool-crop .cr-panel { position: static; }
+}
+@media (max-width: 520px) {
+  #tool-crop .cr-stage { padding: 6px; min-height: 380px; }
+  #tool-crop .cr-drop { inset: 8px; }
+  #tool-crop .cr-drop-ico { font-size: 32px; }
+  #tool-crop .cr-bar { bottom: 10px; gap: 2px; padding: 4px; }
+  #tool-crop .cr-bar-label,
+  #tool-crop .cr-wide { display: none; }
+  #tool-crop .cr-tbtn { padding: 0 9px; }
+  #tool-crop .cr-sep { display: none; }
+  #tool-crop .cr-panel { padding: 14px; }
+}
+/* very small phones (320px): tighter controls so the toolbar stays a one-line pill */
+@media (max-width: 360px) {
+  #tool-crop .cr-bar { flex-wrap: nowrap; gap: 1px; padding: 3px; }
+  #tool-crop .cr-bar select.select { min-width: 0; flex: 0 1 auto; padding: 0 22px 0 9px; font-size: 11px; background-position: right 8px center; }
+  #tool-crop .cr-tbtn { padding: 0 7px; font-size: 11px; }
+  #tool-crop .cr-tbtn--icon { width: 26px; padding: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #tool-crop .cr-grid,
+  #tool-crop .cr-badge,
+  #tool-crop .cr-drop-ico { transition: none !important; }
+}

@@ -1,0 +1,66 @@
+# Refreshes js/feed.js (the frontpage tool's roblox charts snapshot) and the connections
+# avatars (js/connections.js + assets/frontpage/avatars/) once a day.
+# The browser can't call roblox's json apis (no CORS), so the snapshot is baked here and committed.
+name: update feed
+
+on:
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: update-feed
+  cancel-in-progress: false
+
+jobs:
+  feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: fetch feed
+        run: node scripts/fetch-feed.js
+
+      # connections row headshots: cdn urls expire, so the pngs live in the repo.
+      # a failed run keeps yesterday's avatars and must not block the feed.
+      - name: fetch avatars
+        continue-on-error: true
+        run: node scripts/fetch-avatars.js
+
+      - name: commit if changed
+        id: commit
+        run: |
+          paths="js/feed.js js/connections.js assets/frontpage/avatars"
+          if [ -z "$(git status --porcelain -- $paths)" ]; then
+            echo "feed + avatars unchanged"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- $paths
+          git commit -m "chore(feed): refresh roblox charts snapshot + connection avatars"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      # pushes made with GITHUB_TOKEN don't trigger a pages build on their own
+      - name: request pages build
+        if: steps.commit.outputs.changed == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/${{ github.repository }}/pages/builds" || echo "pages build request failed (ignored)"
