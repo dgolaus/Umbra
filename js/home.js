@@ -6,9 +6,9 @@
   'use strict';
 
   var PAINS = [
-    'stop juggling ten tabs.',
-    'stop cropping icons by hand.',
-    'stop fighting gltf files.'
+    'stop redoing countdown icons.',
+    'stop googling robux to usd.',
+    'stop guessing how your thumbnail looks.'
   ];
   var FINAL = 'just use umbra, bro.';
   var SS_KEY = 'home.typed';
@@ -26,6 +26,7 @@
   function showFinal(animateNeon) {
     clearTimeout(timer);
     running = false;
+    fitFor(FINAL);
     line.innerHTML = 'just use <span class="hm-brand">umbra</span>, bro.';
     var brand = line.querySelector('.hm-brand');
     if (animateNeon) { void brand.offsetWidth; }
@@ -39,7 +40,24 @@
   }
 
   // human-ish rhythm: a bit of jitter per key, deletes faster than typing
+  // long lines shrink the title just enough to fit on one line (the css size is the cap)
+  var measureCtx = null;
+  function fitFor(text) {
+    var title = line.parentNode;
+    title.style.fontSize = '';
+    var cs = getComputedStyle(title);
+    var base = parseFloat(cs.fontSize) || 48;
+    var avail = (title.parentNode.clientWidth || window.innerWidth) - 24;
+    if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
+    measureCtx.font = cs.fontWeight + ' ' + base + 'px ' + cs.fontFamily;
+    var spacing = (parseFloat(cs.letterSpacing) || 0) * text.length;
+    var w = measureCtx.measureText(text).width + spacing + base * 0.6;   // + the caret
+    title.style.minHeight = Math.ceil(base * 1.25) + 'px';   // keep the hero from jumping when a line shrinks
+    if (w > avail) title.style.fontSize = Math.floor(base * avail / w) + 'px';
+  }
+  window.addEventListener('resize', function () { if (line && !running && window.Hub && Hub.isActive('home')) fitFor(line.textContent); });
   function typeOut(text) {
+    fitFor(text);
     var i = 0;
     function step() {
       if (skipped) return Promise.resolve();
