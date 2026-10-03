@@ -851,3 +851,33 @@
   color: var(--r-fg3);
 }
 #tool-frontpage .rbx-tab.is-on { color: var(--r-fg); }
+
+/* fullscreen preview: the stage fills the monitor, the mock shows the whole screen */
+#tool-frontpage .fp-fs {
+  flex: none;
+  order: 99;
+  margin-left: 8px;
+  width: 30px; height: 26px;
+  padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; line-height: 1;
+}
+#tool-frontpage .fp-stage.is-fs,
+#tool-frontpage .fp-stage:fullscreen {
+  position: fixed;
+  inset: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 10px;
+  background: #050505;
+}
+#tool-frontpage .fp-stage:fullscreen .fp-stage-body { border-radius: 8px; }
+#tool-frontpage .fp-stage.is-fs { z-index: 200; }
+html.fp-fs-lock, html.fp-fs-lock body { overflow: hidden; }
+/* with the hint hidden (stacked layout) the fullscreen icon still sits at the far right */
+@media (max-width: 860px) { #tool-frontpage .fp-fs { margin-left: auto; } }

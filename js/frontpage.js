@@ -47,7 +47,7 @@
     page: 'home', device: 'desktop', theme: 'dark', lang: 'en', sidebar: true, density: 'cozy',
     genre: 'all', seed: 7, slot: 1, chartRow: 0,
     distance: 0, squint: 0, gray: false,
-    highlight: true, scale: 2, zoom: 'fit'
+    highlight: true, scale: 2, zoom: '100', zoomV: 2
   };
   var ENUMS = {
     varMode: ['flip', 'spread'], iconMode: ['auto', 'upload'],
@@ -560,7 +560,9 @@
     return mobile ? { w: FIT.phoneW + FIT.phoneChrome * 2, h: FIT.phoneH + FIT.phoneChrome * 2, pad: FIT.padPhone }
       : { w: FIT.screenW, h: FIT.screenH, pad: FIT.pad };
   }
-  function fitOn() { return S.zoom === 'fit' && feed.games.length > 0; }
+  var fsOn = false;   // stage in browser fullscreen → always the whole-screen view
+  function wantFit() { return S.zoom === 'fit' || fsOn; }
+  function fitOn() { return wantFit() && feed.games.length > 0; }
   function clearFit() {
     if (!device) return;
     ['width', 'height', 'margin-left', 'margin-top', 'transform', '--fp-inv'].forEach(function (p) { device.style.removeProperty(p); });
@@ -596,7 +598,7 @@
   var fitRaf = null;
   function scheduleFit() {
     if (fitRaf) return;
-    fitRaf = requestAnimationFrame(function () { fitRaf = null; if (S.zoom === 'fit') applyFit(); });
+    fitRaf = requestAnimationFrame(function () { fitRaf = null; if (wantFit()) applyFit(); });
   }
   // effective on-screen scale of an element (fit × distance lens); 1 when unmeasurable
   function scaleOf(el) {
@@ -625,8 +627,8 @@
     seg.id = 'fp-zoom';
     seg.setAttribute('role', 'group');
     seg.setAttribute('aria-label', 'preview size');
-    [['fit', 'whole screen', 'the whole ' + FIT.screenW + '×' + FIT.screenH + ' screen (or the whole phone) scaled to fit'],
-     ['100', '100%', 'actual size — scroll inside the preview']].forEach(function (o) {
+    [['100', '100%', 'actual size, scroll inside the preview'],
+     ['fit', 'fit', 'the whole ' + FIT.screenW + '×' + FIT.screenH + ' screen (or the whole phone) scaled to fit']].forEach(function (o) {
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'chip';
@@ -637,6 +639,48 @@
       seg.appendChild(b);
     });
     bar.insertBefore(seg, stageLabel.nextSibling);
+    // fullscreen: the stage takes the whole monitor and shows the whole screen, so on a
+    // 1080p monitor the mock is at its real 1:1 size. esc (or the button) leaves it.
+    if (stage && stage.requestFullscreen) {
+      var fsBtn = document.createElement('button');
+      fsBtn.type = 'button';
+      fsBtn.className = 'chip fp-fs';
+      fsBtn.id = 'fp-fs';
+      fsBtn.title = 'fullscreen: the whole page at real size (esc to leave)';
+      fsBtn.setAttribute('aria-label', 'fullscreen preview');
+      fsBtn.textContent = '⛶';
+      // real browser fullscreen when allowed; otherwise (embedded views, blocked) the stage
+      // still covers the whole window ("pseudo" mode) and esc leaves it
+      var pseudo = false;
+      var setFs = function (on) {
+        if (fsOn === on) return;
+        fsOn = on;
+        stage.classList.toggle('is-fs', on);
+        document.documentElement.classList.toggle('fp-fs-lock', on && pseudo);
+        fsBtn.textContent = on ? '✕' : '⛶';
+        fsBtn.title = on ? 'exit fullscreen (esc)' : 'fullscreen: the whole page at real size (esc to leave)';
+        fsBtn.setAttribute('aria-label', on ? 'exit fullscreen' : 'fullscreen preview');
+        render();
+      };
+      fsBtn.addEventListener('click', function () {
+        if (fsOn) {
+          if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
+          else { pseudo = false; setFs(false); }
+          return;
+        }
+        var p = null;
+        try { p = stage.requestFullscreen(); } catch (err) { p = Promise.reject(err); }
+        var settled = false;
+        var fallback = function () { if (settled) return; settled = true; if (!document.fullscreenElement) { pseudo = true; setFs(true); } };
+        Promise.resolve(p).then(function () { settled = true; }, fallback);
+        // some embedded browsers leave the request hanging: don't make the user wait
+        setTimeout(fallback, 900);
+      });
+      bar.appendChild(fsBtn);
+      document.addEventListener('fullscreenchange', function () { pseudo = false; setFs(document.fullscreenElement === stage); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && pseudo && fsOn) { pseudo = false; setFs(false); } });
+      document.addEventListener('hub:show', function (e) { if (fsOn && pseudo && e.detail && e.detail.tool !== 'frontpage') { pseudo = false; setFs(false); } });
+    }
   }
 
   /* ---------- layout ---------- */
@@ -644,7 +688,7 @@
   function layout() {
     var mobile = S.device === 'mobile', compact = S.density === 'compact';
     // fit view: always the real 1920 desktop (or the 390 phone), never the stage width
-    var vw = S.zoom === 'fit' ? (mobile ? FIT.phoneW : FIT.screenW) : ((viewport && viewport.clientWidth) || (mobile ? 390 : 980));
+    var vw = wantFit() ? (mobile ? FIT.phoneW : FIT.screenW) : ((viewport && viewport.clientWidth) || (mobile ? 390 : 980));
     // tight: desktop mock squeezed to phone width — drop the sidebar + top-bar extras
     // (S.sidebar itself is left alone so a wider stage restores it)
     var tight = !mobile && vw < TIGHT_W;
@@ -1753,6 +1797,8 @@
         if (d[k] != null && typeof d[k] === typeof DEFAULTS[k]) S[k] = d[k];
       });
       Object.keys(ENUMS).forEach(function (k) { if (ENUMS[k].indexOf(S[k]) === -1) S[k] = DEFAULTS[k]; });
+      // saves from before 100% became the default open at 100% once
+      if (d.zoomV !== 2) { S.zoom = '100'; S.zoomV = 2; }
       S.rating = clamp(Math.round(S.rating) || 0, 0, 100);
       S.slot = Math.max(0, Math.floor(S.slot) || 0);
       S.chartRow = Math.max(0, Math.floor(S.chartRow) || 0);
