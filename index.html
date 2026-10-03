@@ -37,6 +37,7 @@
   <link rel="stylesheet" href="css/frontpage.css" />
   <link rel="stylesheet" href="css/crop.css" />
   <link rel="stylesheet" href="css/gltf.css" />
+  <link rel="stylesheet" href="css/home.css" />
 </head>
 <body>
 
@@ -54,7 +55,7 @@
 
   <!-- top nav -->
   <nav class="hubnav" aria-label="tools">
-    <a class="hubnav__brand" href="#update">
+    <a class="hubnav__brand" href="./" title="home">
       <img class="hubnav__logo" src="assets/fav-256.png" alt="umbra" />
       <span class="mark">umbra</span>
       <span class="tag">by <span class="handle">@gfxs0da</span></span>
@@ -73,6 +74,231 @@
   </nav>
 
   <div class="shell">
+
+    <!-- ======================================================= -->
+    <!-- HOME · landing page (site root)                         -->
+    <!-- ======================================================= -->
+    <section id="tool-home" class="tool" role="tabpanel" aria-label="umbra home">
+      <div class="hm-wrap">
+
+        <header class="hm-hero" id="hm-hero">
+          <span class="hm-pill"><span class="dot">●</span>roblox gfx toolkit · by @gfxs0da</span>
+          <h1 class="hm-title" aria-label="just use umbra, bro.">
+            <span class="hm-line" id="hm-line" aria-hidden="true">just use <span class="hm-brand is-lit">umbra</span>, bro.</span><span class="hm-caret" id="hm-caret" aria-hidden="true"></span>
+          </h1>
+          <p class="hm-sub">the boring parts of roblox gfx work, done in a few clicks. six free tools, one tab.</p>
+          <div class="hm-ctas">
+            <a class="hm-cta specular-button--lg" href="#hm-tools" id="hm-explore">explore the tools ↓</a>
+          </div>
+          <span class="hm-skip" aria-hidden="true">click to skip</span>
+        </header>
+
+        <section class="hm-tools" id="hm-tools" aria-label="the tools">
+          <div class="hm-head">
+            <h2>some of what's inside</h2>
+            <span class="desc">press <span class="kbd">1</span> to <span class="kbd">6</span> anywhere on the site to open a tool</span>
+          </div>
+          <div class="hm-bento">
+
+            <!-- 1 · update icon: hourglass flips, the countdown ticks down -->
+            <a class="hm-card hm-b-update" href="update" data-go="update">
+              <div class="hm-stage" aria-hidden="true">
+                <div class="bx-icon">
+                  <img class="bx-icon-art" src="assets/home/icon-run.jpg" alt="" loading="lazy" draggable="false"><div class="bx-icon-dark"></div>
+                  <img class="bx-hg-img" id="bx-hg-img" alt="" draggable="false">
+                  <span class="bx-count" data-cycle="24 HOURS|12 HOURS|5 HOURS|1 HOUR|NOW!">24 HOURS</span>
+                </div>
+              </div>
+              <span class="hm-key">1</span>
+              <h3>update icon</h3>
+              <p>countdown overlays for your game icon. make the whole countdown set in one click and save it to a folder or a .zip.</p>
+            </a>
+
+            <!-- 2 · mosaic: tiles reshuffle into a new grid -->
+            <a class="hm-card hm-b-mosaic" href="mosaic" data-go="mosaic">
+              <div class="hm-stage" aria-hidden="true">
+                <div class="bx-mosaic">
+                  <i style="background-image:url(assets/home/thumb-run.jpg)"></i><i style="background-image:url(assets/home/thumb-phone.jpg)"></i>
+                  <i style="background-image:url(assets/home/thumb-crowd.jpg)"></i><i style="background-image:url(assets/home/thumb-money.jpg)"></i>
+                </div>
+              </div>
+              <span class="hm-key">2</span>
+              <h3>mosaic</h3>
+              <p>turns your thumbnails into a grid mosaic for your portfolio or a post.</p>
+            </a>
+
+            <!-- 3 · rocalc: a tiny terminal doing the robux math -->
+            <a class="hm-card hm-b-rocalc" href="rocalc" data-go="rocalc">
+              <div class="hm-stage" aria-hidden="true">
+                <div class="bx-term">
+                  <div class="bx-term-bar"><i></i><i></i><i></i><span>rocalc</span></div>
+                  <div class="bx-term-cmd">$ <span class="bx-rc-in">1,000</span> robux</div>
+                  <div class="bx-term-row"><span>after tax</span><b class="bx-rc-tax">700</b></div>
+                  <div class="bx-term-row"><span>devex</span><b class="bx-rc-usd">$2.45</b></div>
+                </div>
+              </div>
+              <span class="hm-key">3</span>
+              <h3>rocalc</h3>
+              <p>the robux math you keep googling: marketplace tax, gamepass prices, devex and black-market rates in your own currency.</p>
+            </a>
+
+            <!-- 4 · frontpage: your tile glows inside a scrolling roblox row -->
+            <a class="hm-card hm-b-front" href="frontpage" data-go="frontpage">
+              <div class="hm-stage" aria-hidden="true">
+                <div class="bx-front">
+                  <div class="bx-front-bar"><i></i><b></b><b></b><b></b><span></span></div>
+                  <div class="bx-front-h"></div>
+                  <div class="bx-front-row"><div class="bx-front-track">
+                    <i></i><i></i><i class="is-mine"><em>your game</em></i><i></i><i></i><i></i><i></i><i></i><i class="is-mine"><em>your game</em></i><i></i>
+                  </div></div>
+                  <div class="bx-front-h is-short"></div>
+                  <div class="bx-front-row is-sq"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                </div>
+              </div>
+              <span class="hm-key">4</span>
+              <h3>frontpage</h3>
+              <p>puts your thumbnail on a roblox-style front page next to real games, so you can see how it holds up before you ship it.</p>
+            </a>
+
+            <!-- 5 · crop: the crop box slides and reshapes, photoshop style -->
+            <a class="hm-card hm-b-crop" href="crop" data-go="crop">
+              <div class="hm-stage" aria-hidden="true">
+                <div class="bx-crop">
+                  <div class="bx-crop-img"></div>
+                  <div class="bx-crop-box"><i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i><span class="r r1">1:1</span><span class="r r2">16:9</span></div>
+                </div>
+              </div>
+              <span class="hm-key">5</span>
+              <h3>crop</h3>
+              <p>crops thumbnails and icons the way photoshop does, with the roblox sizes already set up.</p>
+            </a>
+
+            <!-- 6 · gltf → png: a .gltf opens and drops out its captures -->
+            <a class="hm-card hm-b-gltf" href="gltf" data-go="gltf">
+              <div class="hm-stage" aria-hidden="true">
+                <div class="bx-gltf">
+                  <div class="bx-file"><span>.gltf</span></div>
+                  <div class="bx-arrow">→</div>
+                  <div class="bx-out"><i style="background-image:url(assets/home/thumb-run.jpg)"></i><i style="background-image:url(assets/home/thumb-phone.jpg)"></i><i style="background-image:url(assets/home/thumb-crowd.jpg)"></i><i style="background-image:url(assets/home/thumb-money.jpg)"></i></div>
+                  <div class="bx-done">✓ 4 images extracted</div>
+                </div>
+              </div>
+              <span class="hm-key">6</span>
+              <h3>gltf → png <span class="hm-wip">active testing</span></h3>
+              <p>turns the .gltf you export from studio with photobooth into pngs, with a preview of each capture and empty-space trimming.</p>
+            </a>
+
+          </div>
+        </section>
+
+        <!-- from studio to front page: one capture travels through the tools as you scroll -->
+        <section class="hm-flow" id="hm-flow" aria-label="from studio to front page">
+          <div class="hm-head">
+            <h2>from studio to front page</h2>
+            <span class="desc">one capture going through five of the tools</span>
+          </div>
+          <div class="hm-flow-track">
+            <div class="hm-flow-line" aria-hidden="true"><i id="hm-flow-fill"></i></div>
+            <ol class="hm-flow-steps">
+              <li class="hm-step" data-go="gltf">
+                <div class="hm-step-vis" aria-hidden="true"><div class="fs-file"><span>.gltf</span></div></div>
+                <span class="hm-step-n">01</span>
+                <h3>export from studio</h3>
+                <p>photobooth capture → export selection → .gltf</p>
+              </li>
+              <li class="hm-step" data-go="gltf">
+                <div class="hm-step-vis" aria-hidden="true"><div class="fs-thumb" style="background-image:url(assets/home/thumb-run.jpg)"></div></div>
+                <span class="hm-step-n">02</span>
+                <h3>gltf → png</h3>
+                <p>the capture comes out of the .gltf as a png</p>
+              </li>
+              <li class="hm-step" data-go="crop">
+                <div class="hm-step-vis" aria-hidden="true"><div class="fs-thumb fs-crop" style="background-image:url(assets/home/thumb-run.jpg)"><i></i></div></div>
+                <span class="hm-step-n">03</span>
+                <h3>crop</h3>
+                <p>frame the character in a square icon</p>
+              </li>
+              <li class="hm-step" data-go="update">
+                <div class="hm-step-vis" aria-hidden="true"><div class="fs-icon" style="background-image:url(assets/home/icon-run.jpg)"><img class="fs-hg" alt="" draggable="false"><span>NOW!</span></div></div>
+                <span class="hm-step-n">04</span>
+                <h3>update icon</h3>
+                <p>put the update countdown on top</p>
+              </li>
+              <li class="hm-step" data-go="frontpage">
+                <div class="hm-step-vis" aria-hidden="true"><div class="fs-front"><i></i><i class="is-mine" style="background-image:url(assets/home/icon-run.jpg)"></i><i></i></div></div>
+                <span class="hm-step-n">05</span>
+                <h3>frontpage</h3>
+                <p>see it next to real games before you publish</p>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- why did i make this -->
+        <section class="hm-story" aria-label="why did i make this">
+          <div class="hm-story-me">
+            <img src="assets/frontpage/s0da.png" alt="@gfxs0da's roblox avatar" width="120" height="120" decoding="async">
+            <a class="hm-link" href="https://x.com/gfxs0da" target="_blank" rel="noopener noreferrer">@gfxs0da</a>
+          </div>
+          <div class="hm-story-text">
+            <h2>why did i make this?</h2>
+            <p>when i started making roblox thumbnails, everything around the actual art was manual. i'd redo every countdown icon by hand for each update, and whenever a client paid with a gamepass, i had to do the tax math myself to know how much to charge.</p>
+            <p>so i started building little tools to do it for me, with the help of ai. they saved me a lot of time, and i kept adding more as new problems showed up.</p>
+            <p>at some point i figured other artists were probably stuck doing the same things, so instead of keeping these tools to myself, i put them together here and made them public. if they save you even half the time they saved me, that's the whole point.</p>
+          </div>
+        </section>
+
+        <!-- numbers -->
+        <section class="hm-stats" id="hm-stats" aria-label="umbra in numbers">
+          <div class="hm-stat"><b data-count="6" data-unit="tools">6 <small>tools</small></b><span>at the moment</span></div>
+          <div class="hm-stat"><b data-count="0">0</b><span>uploads, everything stays in your browser</span></div>
+          <div class="hm-stat"><b data-count="100" data-suffix="%">100%</b><span>free, and you never need an account</span></div>
+          <div class="hm-stat"><b data-count="24" data-suffix="h">24h</b><span>between roblox feed updates</span></div>
+        </section>
+
+        <section class="hm-why" aria-label="why umbra">
+          <div class="hm-why-item">
+            <span class="hm-why-ico" aria-hidden="true">◐</span>
+            <h3>nothing leaves your browser</h3>
+            <p>umbra has no backend and no accounts, so your gfx never get uploaded. they stay on your machine.</p>
+          </div>
+          <div class="hm-why-item">
+            <span class="hm-why-ico" aria-hidden="true">⇄</span>
+            <h3>the tools talk to each other</h3>
+            <p>you can crop a thumbnail, send it to the frontpage mock or turn it into an update icon, and each hand-off takes one click.</p>
+          </div>
+          <div class="hm-why-item">
+            <span class="hm-why-ico" aria-hidden="true">✦</span>
+            <h3>made by a gfx artist</h3>
+            <p>built by @gfxs0da for the boring parts of roblox gfx work, so you can get back to the art.</p>
+          </div>
+        </section>
+
+        <!-- faq -->
+        <section class="hm-faq" aria-label="questions">
+          <div class="hm-head">
+            <h2>questions</h2>
+            <span class="desc">things you might be wondering</span>
+          </div>
+          <details class="hm-q"><summary>is umbra free?</summary><p>yes. every tool is free, and there's no account, watermark or usage limit.</p></details>
+          <details class="hm-q"><summary>do my files get uploaded anywhere?</summary><p>no. everything runs inside your browser, so your thumbnails, icons and gltf files never leave your machine. the only thing umbra loads from outside is the roblox front page data for the frontpage mock.</p></details>
+          <details class="hm-q"><summary>does it work on my phone?</summary><p>mostly, yes. the tools are built for desktop first, and saving straight into a folder only works in chrome, edge and opera on a computer. on a phone the files go to your downloads.</p></details>
+          <details class="hm-q"><summary>what is photobooth?</summary><p>a roblox studio plugin by <a class="hm-link" href="https://x.com/EgoMoose" target="_blank" rel="noopener noreferrer">egomoose</a> that captures renders of your workspace. export the capture mesh parts as a .gltf and drop it into <b>gltf → png</b> to get the images out.</p></details>
+          <details class="hm-q"><summary>why can't i pick a folder to save in?</summary><p>your browser doesn't allow it. use chrome, edge or opera. in brave, turn on <b>brave://flags/#file-system-access-api</b>. downloads and .zip work everywhere.</p></details>
+          <details class="hm-q"><summary>who made this?</summary><p><a class="hm-link" href="https://x.com/gfxs0da" target="_blank" rel="noopener noreferrer">@gfxs0da</a>, a roblox gfx artist who got tired of doing the boring parts by hand.</p></details>
+        </section>
+
+        <!-- final cta -->
+        <section class="hm-end" id="hm-end" aria-label="get started">
+          <p class="hm-end-stop"><span>stop wasting time.</span></p>
+          <p class="hm-end-go">just use <span class="hm-brand">umbra</span>, bro.</p>
+          <a class="hm-cta specular-button--lg" href="#hm-tools" id="hm-end-btn">pick a tool ↑</a>
+        </section>
+
+
+      </div>
+    </section>
+
 
     <!-- ======================================================= -->
     <!-- TOOL 1 · UPDATE ICON                                    -->
@@ -1091,5 +1317,7 @@
   <script src="js/frontpage.js" defer></script>
   <script src="js/crop.js" defer></script>
   <script src="js/gltf.js" defer></script>
+  <script src="js/specular.js" defer></script>
+  <script src="js/home.js" defer></script>
 </body>
 </html>

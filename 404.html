@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>umbra</title>
+  <meta name="robots" content="noindex" />
+  <script>
+    // clean tool urls (useumbra.cc/update, /crop …) aren't real files on github pages,
+    // so they land here: bounce to the app with the path in ?go= (keeps #cfg= share links).
+    (function () {
+      var tools = ['update', 'mosaic', 'rocalc', 'frontpage', 'crop', 'gltf'];
+      var parts = location.pathname.replace(/\/+$/, '').split('/');
+      var seg = parts.pop();
+      if (tools.indexOf(seg) !== -1) {
+        location.replace(parts.join('/') + '/?go=' + seg + location.hash);
+      } else {
+        document.documentElement.className = 'nf';
+      }
+    })();
+  </script>
+  <style>
+    html { background: #050505; color: #a3a3a3; font: 13px/1.6 'JetBrains Mono', ui-monospace, monospace; }
+    body { display: none; min-height: 100vh; margin: 0; align-items: center; justify-content: center; text-align: center; }
+    .nf body { display: flex; }
+    a { color: #e5e5e5; }
+  </style>
+</head>
+<body>
+  <div>
+    <p>404 · nothing here</p>
+    <p><a href="/">← back to umbra</a></p>
+  </div>
+</body>
+</html>

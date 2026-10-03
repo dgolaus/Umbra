@@ -9,8 +9,9 @@
 
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
-  var TOOLS = ['update', 'mosaic', 'rocalc', 'frontpage', 'crop', 'gltf'];
-  var DEFAULT_TOOL = 'update';
+  // 'home' is the landing page at the site root — a panel like the tools, but no nav tab and no key
+  var TOOLS = ['update', 'mosaic', 'rocalc', 'frontpage', 'crop', 'gltf', 'home'];
+  var DEFAULT_TOOL = 'home';
   var LS_KEY = 'hub.lastTool';
   var TITLES = {
     update: 'update icon — umbra',
@@ -18,7 +19,8 @@
     rocalc: 'rocalc — umbra',
     frontpage: 'frontpage — umbra',
     crop: 'crop — umbra',
-    gltf: 'gltf → png — umbra'
+    gltf: 'gltf → png — umbra',
+    home: 'umbra — roblox gfx tools, just use umbra'
   };
 
   var reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -27,6 +29,7 @@
   /* ---------- public API ---------- */
   var Hub = {
     activeTool: null,
+    lastTool: function () { var t = null; try { t = localStorage.getItem(LS_KEY); } catch (e) {} return TOOLS.indexOf(t) !== -1 && t !== 'home' ? t : null; },
     isActive: function (name) { return Hub.activeTool === name; },
     show: function (name) { switchTo(name); },
     // tool → tool handoff: queue the payload, announce it, then open the target.
@@ -77,15 +80,42 @@
     document.body.dataset.tool = name;
     document.title = TITLES[name] || 'umbra';
     moveIndicator(name);
-    try { localStorage.setItem(LS_KEY, name); } catch (e) {}
-    // don't clobber a Mosaic config-share hash (#cfg=…) before Mosaic reads it
-    if ((location.hash || '').indexOf('#cfg=') !== 0) {
-      try { history.replaceState(null, '', '#' + name); } catch (e) {}
-    }
+    if (name !== 'home') { try { localStorage.setItem(LS_KEY, name); } catch (e) {} }
+    if (indicator) indicator.style.opacity = name === 'home' ? '0' : '';
+    // clean urls (useumbra.cc/update) on http(s); file:// keeps #update.
+    // never clobber a Mosaic config-share hash (#cfg=…) before Mosaic reads it
+    var cfg = (location.hash || '').indexOf('#cfg=') === 0;
+    try {
+      if (CLEAN) history.replaceState(null, '', BASE + (name === 'home' ? '' : name) + (cfg ? location.hash : ''));
+      else if (!cfg) history.replaceState(null, '', name === 'home' ? location.pathname : '#' + name);
+    } catch (e) {}
 
     // tools that pause body scroll start at top
     window.scrollTo(0, 0);
+    syncNavTop();
     document.dispatchEvent(new CustomEvent('hub:show', { detail: { tool: name } }));
+  }
+
+  // landing hero at the very top → wide transparent nav; anywhere else → compact glass pill
+  function syncNavTop() {
+    document.body.classList.toggle('nav-top', Hub.activeTool === 'home' && window.scrollY < 24);
+  }
+  window.addEventListener('scroll', syncNavTop, { passive: true });
+
+  // clean paths: the site lives at the domain root (useumbra.cc/update). github pages answers
+  // unknown paths with 404.html, which bounces to /?go=/update so this page can take over.
+  var CLEAN = /^https?:$/.test(location.protocol) && typeof history.replaceState === 'function';
+  var BASE = (function () {
+    var p = location.pathname.replace(/index\.html$/, '');
+    var last = p.replace(/\/+$/, '').split('/').pop();
+    if (TOOLS.indexOf(last) !== -1) p = p.replace(/\/+$/, '').slice(0, -last.length);
+    return p.charAt(p.length - 1) === '/' ? p : p + '/';
+  })();
+  function toolFromPath() {
+    var go = null;
+    try { go = new URLSearchParams(location.search).get('go'); } catch (e) {}
+    var seg = (go || location.pathname).replace(/\/+$/, '').split('/').pop();
+    return TOOLS.indexOf(seg) !== -1 ? seg : null;
   }
 
   function initNav() {
@@ -100,7 +130,7 @@
     TOOLS.forEach(function (t) { panels[t] = document.getElementById('tool-' + t); });
 
     var brand = document.querySelector('.hubnav__brand');
-    if (brand) brand.addEventListener('click', function (e) { e.preventDefault(); switchTo(DEFAULT_TOOL); });
+    if (brand) brand.addEventListener('click', function (e) { e.preventDefault(); switchTo('home'); });
 
     // keyboard shortcuts: 1 / 2 / 3 / 4 / 5 switch tools (ignored while typing)
     document.addEventListener('keydown', function (e) {
@@ -108,15 +138,12 @@
       var t = e.target, tag = t && t.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
       var idx = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5 }[e.key];
-      if (idx != null) switchTo(TOOLS[idx]);
+      if (idx != null && TOOLS[idx] !== 'home') switchTo(TOOLS[idx]);
     });
 
-    // initial tool: hash > last used > default
-    var fromHash = (location.hash || '').replace('#', '');
-    var saved = null;
-    try { saved = localStorage.getItem(LS_KEY); } catch (e) {}
-    var start = TOOLS.indexOf(fromHash) !== -1 ? fromHash
-              : (TOOLS.indexOf(saved) !== -1 ? saved : DEFAULT_TOOL);
+    // initial view: path (/update, or ?go= from 404.html) > legacy #hash > the landing page
+    var fromHash = toolFromPath() || (location.hash || '').replace('#', '');
+    var start = TOOLS.indexOf(fromHash) !== -1 ? fromHash : DEFAULT_TOOL;
     if ((location.hash || '').indexOf('#cfg=') === 0) start = 'mosaic';
 
     // force a switch (activeTool starts null so it always runs)
@@ -127,10 +154,14 @@
     window.addEventListener('load', function () { moveIndicator(Hub.activeTool); });
     window.addEventListener('resize', function () { moveIndicator(Hub.activeTool); });
 
-    // back/forward between tool hashes
+    // back/forward + old #tool links
     window.addEventListener('hashchange', function () {
       var h = (location.hash || '').replace('#', '');
       if (TOOLS.indexOf(h) !== -1) switchTo(h);
+    });
+    window.addEventListener('popstate', function () {
+      var p = toolFromPath() || 'home';
+      if (p !== Hub.activeTool) switchTo(p);
     });
   }
 
