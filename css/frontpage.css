@@ -131,39 +131,6 @@
 #tool-frontpage .fp-nb .btn { padding: 7px 12px; }
 #tool-frontpage .counter-bar .fp-link { font-size: 10.5px; }
 
-/* ---- stand-out meter ---- */
-#tool-frontpage .fp-meter-head {
-  display: flex; justify-content: space-between; align-items: baseline;
-  margin: 12px 0 8px; font-size: 12.5px; color: var(--fg);
-}
-#tool-frontpage .fp-meter-sub { font-size: 10.5px; color: var(--dim); }
-#tool-frontpage .fp-meter {
-  padding: 12px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-elev);
-  border: 1px solid var(--line);
-}
-#tool-frontpage .fp-meter-msg { font-size: 11px; color: var(--dim); line-height: 1.5; }
-/* the meter's screen-reader summary (score + verdict only) — the visible meter is not live */
-#tool-frontpage .fp-meter-sr {
-  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
-  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
-}
-#tool-frontpage .fp-meter-top { display: flex; align-items: baseline; gap: 4px; }
-#tool-frontpage .fp-score { font-size: 24px; font-weight: 700; color: var(--fg-strong); line-height: 1; font-variant-numeric: tabular-nums; }
-#tool-frontpage .fp-score-max { font-size: 11px; color: var(--dim); }
-#tool-frontpage .fp-verdict { margin-left: auto; font-size: 11px; color: var(--muted); text-align: right; }
-#tool-frontpage .fp-score-bar { height: 3px; margin: 9px 0 10px; border-radius: 2px; background: var(--line-strong); overflow: hidden; }
-#tool-frontpage .fp-score-bar i { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s var(--ease-out); }
-#tool-frontpage .fp-bars { display: flex; flex-direction: column; gap: 7px; }
-#tool-frontpage .fp-bar { display: grid; grid-template-columns: 86px 1fr 40px; align-items: center; gap: 8px; font-size: 10.5px; }
-#tool-frontpage .fp-bar-l { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#tool-frontpage .fp-bar-t { position: relative; height: 6px; border-radius: 3px; background: var(--line); }
-#tool-frontpage .fp-bar-me { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--accent-deep); transition: width 0.3s var(--ease-out); }
-#tool-frontpage .fp-bar-avg { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; background: var(--fg-strong); border-radius: 1px; }
-#tool-frontpage .fp-bar-d { text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
-#tool-frontpage .fp-bar-d.up { color: var(--fg-strong); }
-#tool-frontpage .fp-meter-foot { margin-top: 10px; font-size: 9.5px; color: var(--dim); line-height: 1.4; }
 
 /* ---- export ---- */
 #tool-frontpage .fp-actions { display: flex; gap: 8px; margin-top: 8px; }

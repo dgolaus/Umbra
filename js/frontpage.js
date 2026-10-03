@@ -3,7 +3,7 @@
    Vanilla JS. Your game (name · rating · players · thumb · icon) is
    dropped among real neighbors from js/feed.js on an ORIGINAL roblox-like
    mock (home · search · charts · desktop / mobile · dark / light · en / pt-br).
-   A/B variants · readability tests · stand-out meter · png export.
+   A/B variants · readability tests · png export.
    Self-contained IIFE. Global listeners guarded by Hub.isActive('frontpage').
    Optional deps (all guarded): window.__UMBRA_FEED, UmbraInsights, UmbraPaint,
    Hub.send / Hub.takeInbox / 'hub:receive'. The icon is a center crop of the
@@ -116,7 +116,7 @@
       iconDrop, iconFile, iconPrev, iconSrc, iconMine, iconRemove, iconCropBtn,
       varRow, varAdd, varFile, varPrev, varNext, varLabel,
       sidebarT, genreSel, shuffleBtn, slotVal, slotReset,
-      distIn, distVal, squintIn, squintVal, grayT, meterEl,
+      distIn, distVal, squintIn, squintVal, grayT,
       hlT, exportBtn, copyBtn, fnameEl, feedInfo;
 
   /* ---------- small helpers ---------- */
@@ -1035,7 +1035,7 @@
     if (lens) lens.hidden = !hasFeed;
     updateStageBar();
     updateExportButtons();
-    if (!hasFeed) { applyFit(); scheduleMeter(); return; }
+    if (!hasFeed) { applyFit(); return; }
 
     var keep = scrollKey === pageKey() ? captureScroll() : null;
     var mobile = S.device === 'mobile';
@@ -1061,7 +1061,6 @@
     fillMine();
     hydrate();
     syncSlot();
-    scheduleMeter();
   }
   // cheap path: name / creator / rating / players only change your own tiles' text,
   // except on search (results heading, top-bar query and hits depend on the name)
@@ -1119,7 +1118,6 @@
     if (activated) return;
     activated = true;
     hydrate();
-    scheduleMeter();
   }
 
   function onImgError(e) {
@@ -1212,7 +1210,6 @@
     refreshMine();
     updateStageBar();
     save();
-    scheduleMeter();
   }
   function afterVariantsChange() {
     S.active = variants.length ? clamp(S.active, 0, variants.length - 1) : 0;
@@ -1386,99 +1383,6 @@
     lens.style.filter = f.join(' ');
     if (distVal) distVal.textContent = distScale().toFixed(2) + '×';
     if (squintVal) squintVal.textContent = S.squint + 'px';
-  }
-
-  /* ---------- stand-out meter ---------- */
-  var meterTimer = null;
-  function scheduleMeter() {
-    clearTimeout(meterTimer);
-    meterTimer = setTimeout(runMeter, 260);
-  }
-  // the meter re-runs on every mock scroll / image load: only touch the DOM when something
-  // changed, and announce just a short summary (fp-meter-sr is the polite live region)
-  var lastMeterHtml = null, lastMeterSr = null;
-  function setMeter(html, sr) {
-    if (!meterEl) return;
-    if (html !== lastMeterHtml) { lastMeterHtml = html; meterEl.innerHTML = html; }
-    var srEl = $('fp-meter-sr');
-    if (srEl && sr !== lastMeterSr) { lastMeterSr = sr; srEl.textContent = sr; }
-  }
-  function meterMsg(msg) {
-    setMeter('<div class="fp-meter-msg">' + esc(msg) + '</div>', 'stand-out meter: ' + msg);
-  }
-  function statsFor(src, key) {
-    var I = window.UmbraInsights;
-    if (key && Object.prototype.hasOwnProperty.call(statsCache, key)) return statsCache[key];
-    var s = null;
-    try { s = I.stats(src); } catch (e) { s = null; }
-    if (key) statsCache[key] = s || null;
-    return s || null;
-  }
-  function overlaps(a, b) { return a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom; }
-  function runMeter() {
-    if (!meterEl) return;
-    var I = window.UmbraInsights;
-    if (!feed.games.length) return meterMsg('no neighbor feed to compare against');
-    if (!I || typeof I.stats !== 'function' || typeof I.compare !== 'function') return meterMsg('insights engine not loaded');
-    if (!variants.length) return meterMsg('add a thumbnail to measure how it stands out');
-    if (!activated) return meterMsg('open the preview to measure');
-    // hidden tool (content-visibility:hidden): measuring would force its layout; hub:show re-runs this
-    if (window.Hub && !isActive()) return;
-    var mineTile = viewport && viewport.querySelector('.rbx-tile.is-mine');
-    if (!mineTile) return meterMsg('your game is not on this page');
-    var kind = mineTile.classList.contains('rbx-tile--wide') ? 'wide' : 'sq';
-    var sec = mineTile.closest('.rbx-sec') || viewport;
-    var main = viewport.querySelector('.rbx-main');
-    var mr = main ? main.getBoundingClientRect() : viewport.getBoundingClientRect();
-    var imgs = Array.prototype.slice.call(sec.querySelectorAll('.rbx-tile:not(.is-mine) img.rbx-img'));
-    var vis = imgs.filter(function (img) {
-      var r = img.getBoundingClientRect();
-      if (!overlaps(r, mr)) return false;
-      var rowEl = img.closest('.rbx-row');
-      return !rowEl || overlaps(r, rowEl.getBoundingClientRect());
-    });
-    if (!vis.length) vis = imgs;
-    var ready = vis.filter(function (img) { return img.complete && img.naturalWidth > 0 && !img.getAttribute('data-fb') && !img.getAttribute('data-src'); });
-    var others = ready.slice(0, 24).map(function (img) { return statsFor(img, img.currentSrc || img.src); });
-    var usable = others.filter(Boolean).length;
-    var v = variants[clamp(S.active, 0, variants.length - 1)];
-    var mineSrc = kind === 'wide' ? v.img : (hasIcon() ? upIcon.img : v.iconCanvas);
-    if (!mineSrc) return meterMsg('your icon is not ready yet');
-    var mine = statsFor(mineSrc, null);
-    if (!mine) return meterMsg('could not read your thumbnail');
-    if (!ready.length && vis.length && vis.every(function (img) { return img.getAttribute('data-fb'); })) {
-      return meterMsg('neighbor images unavailable — no comparison');   // cdn blocked / offline
-    }
-    if (!ready.length) return meterMsg('waiting for neighbor images…');
-    var res;
-    try { res = I.compare(mine, others); } catch (e) { res = null; }
-    if (!res || typeof res !== 'object') return meterMsg('could not compare');
-    drawMeter(res, usable, kind, ready.length);
-  }
-  function pct(x) { return clamp(Number(x) || 0, 0, 1) * 100; }
-  function drawMeter(res, usable, kind, loaded) {
-    var metrics = Array.isArray(res.metrics) ? res.metrics : [];
-    var score = res.score == null || isNaN(res.score) ? null : Math.round(res.score);
-    var h = '<div class="fp-meter-top"><span class="fp-score">' + (score == null ? '—' : score) + '</span>' +
-      '<span class="fp-score-max">/100</span><span class="fp-verdict">' + esc(res.verdict || '') + '</span></div>';
-    if (score != null) h += '<div class="fp-score-bar"><i style="width:' + clamp(score, 0, 100) + '%"></i></div>';
-    if (metrics.length) {
-      h += '<div class="fp-bars">';
-      metrics.forEach(function (m) {
-        var d = Number(m.deltaPct);
-        var dt = isNaN(d) || !isFinite(d) ? '—' : (d > 0 ? '+' : '') + Math.round(d) + '%';
-        h += '<div class="fp-bar" title="you ' + Math.round(pct(m.mine)) + ' · neighbors ' + Math.round(pct(m.avg)) + '">' +
-          '<span class="fp-bar-l">' + esc(m.label || m.key || '') + '</span>' +
-          '<span class="fp-bar-t"><i class="fp-bar-me" style="width:' + pct(m.mine).toFixed(1) + '%"></i>' +
-          '<i class="fp-bar-avg" style="left:' + pct(m.avg).toFixed(1) + '%"></i></span>' +
-          '<span class="fp-bar-d' + (d > 0 ? ' up' : '') + '">' + dt + '</span></div>';
-      });
-      h += '</div>';
-    }
-    var note = usable ? ('vs ' + usable + ' visible neighbor ' + (kind === 'wide' ? 'thumbnails' : 'icons'))
-      : (loaded ? 'neighbor pixels unreadable (cors) — no comparison' : 'no neighbor data');
-    h += '<div class="fp-meter-foot">' + esc(note) + ' · bar = you, tick = neighbors avg</div>';
-    setMeter(h, 'stand-out score ' + (score == null ? 'unavailable' : score + ' of 100') + (res.verdict ? ', ' + String(res.verdict) : ''));
   }
 
   /* ---------- export ---------- */
@@ -1726,8 +1630,6 @@
     // mock
     viewport.addEventListener('click', onMockClick);
     viewport.addEventListener('error', onImgError, true);
-    viewport.addEventListener('load', function (e) { if (e.target && e.target.tagName === 'IMG') scheduleMeter(); }, true);
-    viewport.addEventListener('scroll', function () { scheduleMeter(); }, true);
 
     if (window.ResizeObserver) {
       new ResizeObserver(function () {
@@ -1783,7 +1685,6 @@
         applyFit();     // sizes were 0×0 while the tool was hidden
         if (feed.games.length && sig(layout()) !== lastSig) render();
         scheduleFit();
-        scheduleMeter();
       }
     });
     document.addEventListener('hub:receive', onReceive);
@@ -1836,7 +1737,7 @@
     sidebarT = $('fp-sidebar'); genreSel = $('fp-genre'); shuffleBtn = $('fp-shuffle');
     slotVal = $('fp-slot-v'); slotReset = $('fp-slot-reset');
     distIn = $('fp-distance'); distVal = $('fp-distance-v'); squintIn = $('fp-squint'); squintVal = $('fp-squint-v');
-    grayT = $('fp-gray'); meterEl = $('fp-meter');
+    grayT = $('fp-gray');
     hlT = $('fp-highlight'); exportBtn = $('fp-export'); copyBtn = $('fp-copy'); fnameEl = $('fp-fname');
     feedInfo = $('fp-feed-info');
 

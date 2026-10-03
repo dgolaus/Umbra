@@ -59,7 +59,6 @@ see your thumbnail where it actually lives — on a roblox-style front page, nex
 - **desktop / mobile**, **dark / light**, **en / pt-br**, sidebar on/off, cozy / compact density
 - **a/b variants** — up to 4 thumbnails; flip through them in one slot (`←` / `→`) or spread them across the page
 - **readability tests** — distance (scale down), squint (blur), grayscale
-- **stand-out meter** — saturation · contrast · brightness · colorfulness · detail vs the visible neighbors, with a score + verdict
 - **icon** — **upload icon**, or **crop from thumbnail →** sends the active variant's thumbnail to **crop** and the square you pick comes back as the icon. until you set one, tiles use a center square crop of each thumbnail (`remove` goes back to it)
 - pick your slot by clicking any tile, filter neighbors by genre, reshuffle them
 - **export** the preview as png (1x / 2x) or copy it to the clipboard — in whole screen mode that is the full 1920×1080 screen (3840×2160 at 2x)
