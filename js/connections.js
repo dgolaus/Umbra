@@ -4,7 +4,7 @@ window.__UMBRA_CONNECTIONS = [
   {"username":"nnosherr","name":"nosher","verified":false,"src":"assets/frontpage/avatars/nnosherr.png"},
   {"username":"Ieafarr","name":"rafaeI","verified":false,"src":"assets/frontpage/avatars/ieafarr.png"},
   {"username":"4Iudee","name":"lude","verified":false,"src":"assets/frontpage/avatars/4iudee.png"},
-  {"username":"JuanArtxz","name":"juan","verified":false,"src":"assets/frontpage/avatars/juanartxz.png"},
+  {"username":"JuanArtxz","name":"Juan","verified":true,"src":"assets/frontpage/avatars/juanartxz.png"},
   {"username":"sak7q","name":"sak","verified":false,"src":"assets/frontpage/avatars/sak7q.png"},
   {"username":"zLyuss","name":"Lyus","verified":false,"src":"assets/frontpage/avatars/zlyuss.png"},
   {"username":"ThzArtzz","name":"THZ","verified":false,"src":"assets/frontpage/avatars/thzartzz.png"},
