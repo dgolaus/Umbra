@@ -20,7 +20,7 @@ window.__UMBRA_CONNECTIONS = [
   {"username":"ssquibidyy","name":"squibidy","verified":false,"src":"assets/frontpage/avatars/ssquibidyy.png"},
   {"username":"Gemiauzis","name":"Gemiauzis","verified":false,"src":"assets/frontpage/avatars/gemiauzis.png"},
   {"username":"feios","name":"feios","verified":false,"src":"assets/frontpage/avatars/feios.png"},
-  {"username":"Caiobfofo","name":"C4l0B","verified":false,"src":"assets/frontpage/avatars/caiobfofo.png"},
+  {"username":"Caiobfofo","name":"Caiobfofo","verified":false,"src":"assets/frontpage/avatars/caiobfofo.png"},
   {"username":"b0rgestop","name":"borges","verified":false,"src":"assets/frontpage/avatars/b0rgestop.png"},
   {"username":"roviertop","name":"rovier","verified":false,"src":"assets/frontpage/avatars/roviertop.png"}
 ];
